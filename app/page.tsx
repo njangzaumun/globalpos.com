@@ -159,7 +159,17 @@ export default function FullyResponsivePOS() {
     });
     setProducts(updatedProducts);
 
-    const newOrder = { id: "INV" + Date.now().toString().slice(-6), time: new Date().toLocaleTimeString(), total: grandTotalUSD, method, items: cart };
+    // Save everything needed for the beautiful receipt
+    const newOrder = { 
+      id: "INV" + Date.now().toString().slice(-6), 
+      time: new Date().toLocaleTimeString(), 
+      subTotal: subTotalUSD,
+      tax: taxAmountUSD,
+      discount: discountUSD,
+      total: grandTotalUSD, 
+      method, 
+      items: cart 
+    };
     setOrders([newOrder, ...orders]);
     setLastReceipt(newOrder);
 
@@ -184,30 +194,98 @@ export default function FullyResponsivePOS() {
   return (
     <div className={isDarkMode ? "dark" : ""}>
       
-      {/* ================= PRINT TEMPLATE ================= */}
-      <div className="hidden print:block p-8 text-black bg-white w-full h-full font-mono">
+      {/* ================= BEAUTIFUL PRINT TEMPLATE ================= */}
+      <div className="hidden print:flex justify-center p-8 text-black bg-white w-full h-full font-mono">
         {lastReceipt && (
-          <div className="max-w-xs mx-auto text-sm">
-            <h2 className="text-center font-black text-2xl mb-1">NJANG GLOBAL POS</h2>
-            <p className="text-center text-xs mb-4">Official Receipt</p>
-            <p className="text-xs">Receipt: {lastReceipt.id}</p>
-            <p className="text-xs mb-3">Date: {lastReceipt.time}</p>
-            <div className="border-t border-b border-dashed border-black py-2 mb-2">
-              {lastReceipt.items.map((item: any) => (
-                <div key={item.id} className="flex justify-between mb-1">
-                  <span>{item.qty}x {item.name}</span>
-                  <span>{symbols[currency]}{getPrice(item.price * item.qty)}</span>
+          <div className="w-[80mm] mx-auto text-sm bg-white p-4">
+            
+            {/* Header */}
+            <div className="text-center mb-6">
+              <h2 className="text-3xl font-black mb-1 tracking-tighter">GlobalPOS</h2>
+              <p className="text-xs font-bold text-gray-500 mb-4 tracking-widest uppercase">By njangzaumun</p>
+              <p className="text-xs">123 Tech Avenue, Building 4</p>
+              <p className="text-xs">Silicon Valley, CA 90210</p>
+              <p className="text-xs">Tel: +1 234 567 8900</p>
+            </div>
+
+            {/* Receipt Info */}
+            <div className="border-b-2 border-dashed border-gray-400 pb-3 mb-3">
+              <div className="flex justify-between text-xs mb-1">
+                <span>Receipt No:</span>
+                <span className="font-bold">{lastReceipt.id}</span>
+              </div>
+              <div className="flex justify-between text-xs mb-1">
+                <span>Date:</span>
+                <span>{lastReceipt.time}</span>
+              </div>
+              <div className="flex justify-between text-xs">
+                <span>Cashier:</span>
+                <span>{role}</span>
+              </div>
+            </div>
+
+            {/* Items Table */}
+            <div className="border-b-2 border-dashed border-gray-400 pb-3 mb-3 min-h-[100px]">
+              <table className="w-full text-xs">
+                <thead>
+                  <tr className="text-left border-b border-gray-300">
+                    <th className="pb-2 font-bold uppercase tracking-wider">Item</th>
+                    <th className="pb-2 font-bold uppercase tracking-wider text-center">Qty</th>
+                    <th className="pb-2 font-bold uppercase tracking-wider text-right">Price</th>
+                  </tr>
+                </thead>
+                <tbody className="align-top">
+                  {lastReceipt.items.map((item: any) => (
+                    <tr key={item.id}>
+                      <td className="py-2 pr-2 font-medium">{item.name}</td>
+                      <td className="py-2 text-center">{item.qty}</td>
+                      <td className="py-2 text-right">{symbols[currency]}{getPrice(item.price * item.qty)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Calculations */}
+            <div className="border-b-2 border-dashed border-gray-400 pb-3 mb-4">
+              <div className="flex justify-between text-xs mb-1">
+                <span>Subtotal</span>
+                <span>{symbols[currency]}{getPrice(lastReceipt.subTotal)}</span>
+              </div>
+              <div className="flex justify-between text-xs mb-1">
+                <span>Tax ({taxRate}%)</span>
+                <span>{symbols[currency]}{getPrice(lastReceipt.tax)}</span>
+              </div>
+              {lastReceipt.discount > 0 && (
+                <div className="flex justify-between text-xs mb-1">
+                  <span>Discount</span>
+                  <span>-{symbols[currency]}{getPrice(lastReceipt.discount)}</span>
                 </div>
-              ))}
+              )}
+              <div className="flex justify-between items-center text-lg font-black mt-3 pt-3 border-t border-gray-300">
+                <span>TOTAL</span>
+                <span>{symbols[currency]}{getPrice(lastReceipt.total)}</span>
+              </div>
             </div>
-            <div className="flex justify-between font-bold text-base mt-2">
-              <span>{t.total}</span>
-              <span>{symbols[currency]}{getPrice(lastReceipt.total)}</span>
+
+            {/* Footer */}
+            <div className="text-center space-y-1">
+              <p className="text-xs">Paid by: <span className="font-bold border px-1">{lastReceipt.method}</span></p>
+              <p className="mt-6 font-bold text-sm tracking-wide">THANK YOU!</p>
+              <p className="text-[10px] text-gray-500">Please come again</p>
+              
+              {/* Fake Barcode Generator */}
+              <div className="flex justify-center h-10 mt-4 opacity-80 gap-[1px]">
+                {['w-1','w-2','w-1','w-3','w-1','w-2','w-1','w-4','w-2','w-1','w-3','w-1','w-2','w-1'].map((w, i) => (
+                  <div key={i} className={`bg-black h-full ${w}`}></div>
+                ))}
+              </div>
+              <p className="text-[10px] tracking-[0.3em] mt-1 font-bold">{lastReceipt.id}</p>
             </div>
-            <p className="text-xs mt-1">Paid: {lastReceipt.method}</p>
+
           </div>
-        )}
-      </div>
+        </div>
+      )}
 
       {/* ================= MAIN APPLICATION ================= */}
       <div className="flex flex-col md:flex-row h-screen bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white print:hidden overflow-hidden select-none">
