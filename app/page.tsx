@@ -25,6 +25,10 @@ export default function FullyResponsivePOS() {
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<string[]>(["Coffee", "Meals", "Beverage"]);
   const [orders, setOrders] = useState<any[]>([]);
+  const [currentPlan, setCurrentPlan] = useState("Free Trial");
+
+  // --- Subscription Modal State ---
+  const [subModalPlan, setSubModalPlan] = useState<{name: string, price: string} | null>(null);
 
   // --- POS States ---
   const [cart, setCart] = useState<CartItem[]>([]);
@@ -45,7 +49,9 @@ export default function FullyResponsivePOS() {
       cash: "Cash", card: "Card", wallet: "Wallet", print: "Print Receipt", 
       add: "Add Product", pName: "Product Name", pPrice: "Price", pStock: "Stock", pCode: "Barcode", act: "Action", del: "Delete",
       sLang: "System Language", sCurr: "Default Currency", sTax: "Tax Rate (%)", sDark: "Dark Mode", sReset: "Reset All Data",
-      closed: "Register Closed", openReg: "Open Register to start selling", inStock: "In Stock"
+      closed: "Register Closed", openReg: "Open Register to start selling", inStock: "In Stock",
+      subs: "Subscription & Billing", m3: "3 Months Plan", m6: "6 Months Plan", m12: "12 Months Plan", upgrade: "Upgrade Now",
+      payMethod: "Select Payment Method"
     },
     MM: { 
       pos: "အရောင်း", dash: "အနှစ်ချုပ်", inv: "ပစ္စည်းစာရင်း", rep: "စာရင်းစစ်", cust: "ဖောက်သည်", sup: "ကုန်သည်", set: "ဆက်တင်", 
@@ -54,7 +60,9 @@ export default function FullyResponsivePOS() {
       cash: "ငွေသား", card: "ကတ်", wallet: "KPay/Wave", print: "ဘေလ်ထုတ်မည်", 
       add: "အသစ်ထည့်ရန်", pName: "ပစ္စည်းအမည်", pPrice: "စျေးနှုန်း", pStock: "လက်ကျန်", pCode: "ဘားကုဒ်", act: "လုပ်ဆောင်ချက်", del: "ဖျက်မည်",
       sLang: "ဘာသာစကား", sCurr: "ငွေကြေး", sTax: "အခွန် ရာခိုင်နှုန်း (%)", sDark: "အမည်းရောင် ဒီဇိုင်း", sReset: "ဒေတာအားလုံး ဖျက်မည်",
-      closed: "ဆိုင်ပိတ်ထားပါသည်", openReg: "အရောင်းစတင်ရန် ဆိုင်ဖွင့်ပါ", inStock: "ခု ကျန်သေးသည်"
+      closed: "ဆိုင်ပိတ်ထားပါသည်", openReg: "အရောင်းစတင်ရန် ဆိုင်ဖွင့်ပါ", inStock: "ခု ကျန်သေးသည်",
+      subs: "လစဉ်ကြေး ပေးသွင်းမှုစနစ်", m3: "၃ လ စနစ်", m6: "၆ လ စနစ်", m12: "၁၂ လ စနစ် (၁ နှစ်)", upgrade: "အဆင့်မြှင့်မည်",
+      payMethod: "ငွေပေးချေမည့် နည်းလမ်း ရွေးပါ"
     },
     ZH: { 
       pos: "收银", dash: "仪表板", inv: "库存", rep: "报告", cust: "客户", sup: "供应商", set: "设置", 
@@ -63,7 +71,9 @@ export default function FullyResponsivePOS() {
       cash: "现金", card: "刷卡", wallet: "钱包", print: "打印收据", 
       add: "添加产品", pName: "名称", pPrice: "价格", pStock: "库存", pCode: "条码", act: "操作", del: "删除",
       sLang: "系统语言", sCurr: "默认货币", sTax: "税率 (%)", sDark: "深色模式", sReset: "重置所有数据",
-      closed: "收银台已关闭", openReg: "打开收银台开始销售", inStock: "库存"
+      closed: "收银台已关闭", openReg: "打开收银台开始销售", inStock: "库存",
+      subs: "订阅与账单", m3: "3个月计划", m6: "6个月计划", m12: "12个月计划", upgrade: "立即升级",
+      payMethod: "选择付款方式"
     },
     MS: { 
       pos: "Jualan", dash: "Papan", inv: "Inventori", rep: "Laporan", cust: "Pelanggan", sup: "Pembekal", set: "Tetapan", 
@@ -72,7 +82,9 @@ export default function FullyResponsivePOS() {
       cash: "Tunai", card: "Kad", wallet: "Dompet", print: "Cetak Resit", 
       add: "Tambah Produk", pName: "Nama Produk", pPrice: "Harga", pStock: "Stok", pCode: "Kod Bar", act: "Tindakan", del: "Padam",
       sLang: "Bahasa Sistem", sCurr: "Mata Wang", sTax: "Kadar Cukai (%)", sDark: "Mod Gelap", sReset: "Tetapkan Semula",
-      closed: "Daftar Ditutup", openReg: "Buka daftar untuk mula", inStock: "Dalam Stok"
+      closed: "Daftar Ditutup", openReg: "Buka daftar untuk mula", inStock: "Dalam Stok",
+      subs: "Langganan & Bil", m3: "Pelan 3 Bulan", m6: "Pelan 6 Bulan", m12: "Pelan 12 Bulan", upgrade: "Naik Taraf",
+      payMethod: "Pilih Kaedah Pembayaran"
     }
   };
   const t = dict[lang];
@@ -84,6 +96,9 @@ export default function FullyResponsivePOS() {
 
     const savedCurr = localStorage.getItem("pos_curr");
     if (savedCurr) setCurrency(savedCurr);
+
+    const savedPlan = localStorage.getItem("pos_plan");
+    if (savedPlan) setCurrentPlan(savedPlan);
 
     const savedProducts = localStorage.getItem("pos_products");
     if (savedProducts) {
@@ -106,10 +121,11 @@ export default function FullyResponsivePOS() {
     if (isLoaded) {
       localStorage.setItem("pos_lang", lang);
       localStorage.setItem("pos_curr", currency);
+      localStorage.setItem("pos_plan", currentPlan);
       localStorage.setItem("pos_products", JSON.stringify(products));
       localStorage.setItem("pos_orders", JSON.stringify(orders));
     }
-  }, [lang, currency, products, orders, isLoaded]);
+  }, [lang, currency, currentPlan, products, orders, isLoaded]);
 
   // --- Logic Helpers ---
   const getPrice = (priceUSD: number) => {
@@ -159,7 +175,6 @@ export default function FullyResponsivePOS() {
     });
     setProducts(updatedProducts);
 
-    // Save everything needed for the beautiful receipt
     const newOrder = { 
       id: "INV" + Date.now().toString().slice(-6), 
       time: new Date().toLocaleTimeString(), 
@@ -179,6 +194,18 @@ export default function FullyResponsivePOS() {
     setIsMobileCartOpen(false);
   };
 
+  const openSubscribeModal = (name: string, price: string) => {
+    setSubModalPlan({ name, price });
+  };
+
+  const handleConfirmSubscription = (method: string) => {
+    if (subModalPlan) {
+      setCurrentPlan(subModalPlan.name);
+      alert(`🎉 Payment Successful via ${method}!\nWelcome to ${subModalPlan.name}.\nThank you for choosing GlobalPOS!`);
+      setSubModalPlan(null); // Close modal
+    }
+  };
+
   const navItems = [
     { id: "POS", icon: "🛒", label: t.pos, reqAdmin: false },
     { id: "DASHBOARD", icon: "📊", label: t.dash, reqAdmin: true },
@@ -189,7 +216,7 @@ export default function FullyResponsivePOS() {
     { id: "SETTINGS", icon: "⚙️", label: t.set, reqAdmin: true }
   ];
 
-  if (!isLoaded) return <div className="p-10 font-bold">Loading NJANG POS...</div>;
+  if (!isLoaded) return <div className="p-10 font-bold flex justify-center items-center h-screen">Loading NJANG POS...</div>;
 
   return (
     <div className={isDarkMode ? "dark" : ""}>
@@ -198,8 +225,6 @@ export default function FullyResponsivePOS() {
       <div className="hidden print:flex justify-center p-8 text-black bg-white w-full h-full font-mono">
         {lastReceipt && (
           <div className="w-[80mm] mx-auto text-sm bg-white p-4">
-            
-            {/* Header */}
             <div className="text-center mb-6">
               <h2 className="text-3xl font-black mb-1 tracking-tighter">GlobalPOS</h2>
               <p className="text-xs font-bold text-gray-500 mb-4 tracking-widest uppercase">By njangzaumun</p>
@@ -208,23 +233,18 @@ export default function FullyResponsivePOS() {
               <p className="text-xs">Tel: +1 234 567 8900</p>
             </div>
 
-            {/* Receipt Info */}
             <div className="border-b-2 border-dashed border-gray-400 pb-3 mb-3">
               <div className="flex justify-between text-xs mb-1">
-                <span>Receipt No:</span>
-                <span className="font-bold">{lastReceipt.id}</span>
+                <span>Receipt No:</span><span className="font-bold">{lastReceipt.id}</span>
               </div>
               <div className="flex justify-between text-xs mb-1">
-                <span>Date:</span>
-                <span>{lastReceipt.time}</span>
+                <span>Date:</span><span>{lastReceipt.time}</span>
               </div>
               <div className="flex justify-between text-xs">
-                <span>Cashier:</span>
-                <span>{role}</span>
+                <span>Cashier:</span><span>{role}</span>
               </div>
             </div>
 
-            {/* Items Table */}
             <div className="border-b-2 border-dashed border-gray-400 pb-3 mb-3 min-h-[100px]">
               <table className="w-full text-xs">
                 <thead>
@@ -246,35 +266,27 @@ export default function FullyResponsivePOS() {
               </table>
             </div>
 
-            {/* Calculations */}
             <div className="border-b-2 border-dashed border-gray-400 pb-3 mb-4">
               <div className="flex justify-between text-xs mb-1">
-                <span>Subtotal</span>
-                <span>{symbols[currency]}{getPrice(lastReceipt.subTotal)}</span>
+                <span>Subtotal</span><span>{symbols[currency]}{getPrice(lastReceipt.subTotal)}</span>
               </div>
               <div className="flex justify-between text-xs mb-1">
-                <span>Tax ({taxRate}%)</span>
-                <span>{symbols[currency]}{getPrice(lastReceipt.tax)}</span>
+                <span>Tax ({taxRate}%)</span><span>{symbols[currency]}{getPrice(lastReceipt.tax)}</span>
               </div>
               {lastReceipt.discount > 0 && (
                 <div className="flex justify-between text-xs mb-1">
-                  <span>Discount</span>
-                  <span>-{symbols[currency]}{getPrice(lastReceipt.discount)}</span>
+                  <span>Discount</span><span>-{symbols[currency]}{getPrice(lastReceipt.discount)}</span>
                 </div>
               )}
               <div className="flex justify-between items-center text-lg font-black mt-3 pt-3 border-t border-gray-300">
-                <span>TOTAL</span>
-                <span>{symbols[currency]}{getPrice(lastReceipt.total)}</span>
+                <span>TOTAL</span><span>{symbols[currency]}{getPrice(lastReceipt.total)}</span>
               </div>
             </div>
 
-            {/* Footer */}
             <div className="text-center space-y-1">
               <p className="text-xs">Paid by: <span className="font-bold border px-1">{lastReceipt.method}</span></p>
               <p className="mt-6 font-bold text-sm tracking-wide">THANK YOU!</p>
               <p className="text-[10px] text-gray-500">Please come again</p>
-              
-              {/* Fake Barcode Generator */}
               <div className="flex justify-center h-10 mt-4 opacity-80 gap-[1px]">
                 {['w-1','w-2','w-1','w-3','w-1','w-2','w-1','w-4','w-2','w-1','w-3','w-1','w-2','w-1'].map((w, i) => (
                   <div key={i} className={`bg-black h-full ${w}`}></div>
@@ -282,13 +294,12 @@ export default function FullyResponsivePOS() {
               </div>
               <p className="text-[10px] tracking-[0.3em] mt-1 font-bold">{lastReceipt.id}</p>
             </div>
-
           </div>
-        </div>
-      )}
+        )}
+      </div>
 
       {/* ================= MAIN APPLICATION ================= */}
-      <div className="flex flex-col md:flex-row h-screen bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white print:hidden overflow-hidden select-none">
+      <div className="flex flex-col md:flex-row h-screen bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white print:hidden overflow-hidden select-none transition-colors duration-300">
         
         {/* --- DESKTOP & TABLET SIDEBAR --- */}
         <aside className="hidden md:flex w-20 lg:w-24 bg-white dark:bg-slate-950 border-r dark:border-slate-800 flex-col items-center py-4 shadow-xl z-20 shrink-0">
@@ -337,7 +348,7 @@ export default function FullyResponsivePOS() {
           </header>
 
           {/* Tab Views */}
-          <div className="flex-1 overflow-y-auto p-3 md:p-6 pb-24 md:pb-6">
+          <div className="flex-1 overflow-y-auto p-3 md:p-6 pb-24 md:pb-6 relative">
             
             {/* 1. POS View */}
             {activeTab === "POS" && (
@@ -401,13 +412,13 @@ export default function FullyResponsivePOS() {
                       <div className="flex justify-between text-lg font-black mb-3 mt-2 pt-2 border-t text-indigo-600 dark:text-indigo-400"><span>{t.total}</span><span>{symbols[currency]}{getPrice(grandTotalUSD)}</span></div>
                       
                       <div className="grid grid-cols-3 gap-2 mb-2">
-                        <button onClick={() => handlePay("Cash")} disabled={!cart.length} className="bg-white dark:bg-slate-800 border dark:border-slate-700 py-2 rounded-xl text-xs font-bold shadow-sm">💵 {t.cash}</button>
-                        <button onClick={() => handlePay("Card")} disabled={!cart.length} className="bg-white dark:bg-slate-800 border dark:border-slate-700 py-2 rounded-xl text-xs font-bold shadow-sm">💳 {t.card}</button>
-                        <button onClick={() => handlePay("Wallet")} disabled={!cart.length} className="bg-white dark:bg-slate-800 border dark:border-slate-700 py-2 rounded-xl text-xs font-bold shadow-sm">📱 {t.wallet}</button>
+                        <button onClick={() => handlePay("Cash")} disabled={!cart.length} className="bg-white dark:bg-slate-800 border dark:border-slate-700 py-2 rounded-xl text-xs font-bold shadow-sm hover:border-indigo-500">💵 {t.cash}</button>
+                        <button onClick={() => handlePay("Card")} disabled={!cart.length} className="bg-white dark:bg-slate-800 border dark:border-slate-700 py-2 rounded-xl text-xs font-bold shadow-sm hover:border-indigo-500">💳 {t.card}</button>
+                        <button onClick={() => handlePay("Wallet")} disabled={!cart.length} className="bg-white dark:bg-slate-800 border dark:border-slate-700 py-2 rounded-xl text-xs font-bold shadow-sm hover:border-indigo-500">📱 {t.wallet}</button>
                       </div>
 
                       {lastReceipt && (
-                        <button onClick={() => window.print()} className="w-full bg-slate-800 dark:bg-slate-700 text-white py-2 rounded-xl text-xs font-bold shadow">🖨️ {t.print}</button>
+                        <button onClick={() => window.print()} className="w-full bg-slate-800 dark:bg-slate-700 text-white py-2 rounded-xl text-xs font-bold shadow mt-2">🖨️ {t.print}</button>
                       )}
                     </div>
                   </div>
@@ -451,35 +462,85 @@ export default function FullyResponsivePOS() {
               </div>
             )}
 
-            {/* 3. SETTINGS View */}
+            {/* 3. SETTINGS View (Including Subscriptions) */}
             {activeTab === "SETTINGS" && role === "Admin" && (
-              <div className="max-w-2xl mx-auto space-y-4">
+              <div className="max-w-4xl mx-auto space-y-6">
                 <h2 className="text-xl md:text-2xl font-bold">{t.set}</h2>
-                <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm space-y-4 text-xs md:text-sm">
+                
+                {/* General Settings */}
+                <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm grid grid-cols-1 md:grid-cols-2 gap-4 text-xs md:text-sm">
                   <div>
                     <label className="block font-bold mb-1">{t.sLang}</label>
-                    <select className="w-full border p-2.5 rounded-xl dark:bg-slate-700 dark:border-slate-600 font-bold" value={lang} onChange={e => setLang(e.target.value as Lang)}>
-                      <option value="EN">🇺🇸 English</option>
-                      <option value="MM">🇲🇲 Myanmar (မြန်မာ)</option>
-                      <option value="ZH">🇨🇳 Chinese (中文)</option>
-                      <option value="MS">🇲🇾 Malay (Melayu)</option>
+                    <select className="w-full border p-2.5 rounded-xl dark:bg-slate-700 dark:border-slate-600 font-bold outline-none" value={lang} onChange={e => setLang(e.target.value as Lang)}>
+                      <option value="EN">🇺🇸 English</option><option value="MM">🇲🇲 Myanmar (မြန်မာ)</option><option value="ZH">🇨🇳 Chinese (中文)</option><option value="MS">🇲🇾 Malay (Melayu)</option>
                     </select>
                   </div>
                   <div>
                     <label className="block font-bold mb-1">{t.sCurr}</label>
-                    <select className="w-full border p-2.5 rounded-xl dark:bg-slate-700 dark:border-slate-600 font-bold" value={currency} onChange={e => setCurrency(e.target.value)}>
-                      <option value="USD">USD ($)</option><option value="MMK">MMK (Ks)</option>
-                      <option value="MYR">MYR (RM)</option><option value="THB">THB (฿)</option>
-                      <option value="SGD">SGD (S$)</option><option value="CNY">CNY (¥)</option>
+                    <select className="w-full border p-2.5 rounded-xl dark:bg-slate-700 dark:border-slate-600 font-bold outline-none" value={currency} onChange={e => setCurrency(e.target.value)}>
+                      <option value="USD">USD ($)</option><option value="MMK">MMK (Ks)</option><option value="MYR">MYR (RM)</option><option value="THB">THB (฿)</option><option value="SGD">SGD (S$)</option><option value="CNY">CNY (¥)</option>
                     </select>
                   </div>
                   <div>
                     <label className="block font-bold mb-1">{t.sDark}</label>
-                    <button onClick={() => setIsDarkMode(!isDarkMode)} className={`w-full py-2.5 rounded-xl font-bold ${isDarkMode ? "bg-indigo-600 text-white" : "bg-slate-200 text-slate-800"}`}>
+                    <button onClick={() => setIsDarkMode(!isDarkMode)} className={`w-full py-2.5 rounded-xl font-bold transition-colors ${isDarkMode ? "bg-indigo-600 text-white" : "bg-slate-200 text-slate-800"}`}>
                       {isDarkMode ? "🌙 ON" : "☀️ OFF"}
                     </button>
                   </div>
-                  <button onClick={() => { localStorage.clear(); window.location.reload(); }} className="text-rose-500 font-bold text-xs bg-rose-50 dark:bg-rose-900/20 px-4 py-2 rounded-xl w-full">⚠️ {t.sReset}</button>
+                  <div className="flex items-end">
+                    <button onClick={() => { localStorage.clear(); window.location.reload(); }} className="text-rose-500 font-bold text-xs bg-rose-50 dark:bg-rose-900/20 px-4 py-3 rounded-xl w-full border border-rose-100 dark:border-rose-900">⚠️ {t.sReset}</button>
+                  </div>
+                </div>
+
+                {/* Subscriptions & Billing */}
+                <h3 className="text-lg md:text-xl font-bold pt-4 border-t dark:border-slate-800">{t.subs}</h3>
+                <div className="bg-indigo-50 dark:bg-slate-800/50 p-4 rounded-xl border border-indigo-100 dark:border-slate-700 flex justify-between items-center">
+                  <span className="font-bold text-slate-600 dark:text-slate-300">Current Plan:</span>
+                  <span className="bg-indigo-600 text-white px-3 py-1 rounded-full text-xs font-bold shadow-sm">{currentPlan}</span>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pb-8">
+                  
+                  {/* 3 Months Plan */}
+                  <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border dark:border-slate-700 flex flex-col justify-between hover:border-indigo-400 transition-all">
+                    <div>
+                      <h4 className="font-bold text-lg mb-2">{t.m3}</h4>
+                      <p className="text-3xl font-black text-indigo-600 mb-1">$89 <span className="text-sm font-normal text-slate-400">/ 3 mo</span></p>
+                      <p className="text-xs text-emerald-500 font-bold mb-4">Save 10%</p>
+                      <ul className="text-xs space-y-2 text-slate-600 dark:text-slate-400 mb-6">
+                        <li>✔️ Full POS Features</li><li>✔️ Unlimited Products</li><li>✔️ Basic Support</li>
+                      </ul>
+                    </div>
+                    <button onClick={() => openSubscribeModal(t.m3, "$89.00")} className="w-full border-2 border-indigo-600 text-indigo-600 dark:text-indigo-400 dark:border-indigo-500 font-bold py-2 rounded-xl hover:bg-indigo-50 dark:hover:bg-indigo-900/30">{t.upgrade}</button>
+                  </div>
+
+                  {/* 6 Months Plan (Most Popular) */}
+                  <div className="bg-indigo-600 text-white p-6 rounded-2xl shadow-xl border border-indigo-500 flex flex-col justify-between relative transform md:-translate-y-2">
+                    <div className="absolute top-0 right-0 bg-amber-400 text-amber-900 text-[10px] font-black px-2 py-1 rounded-bl-lg rounded-tr-xl uppercase tracking-wider">Most Popular</div>
+                    <div>
+                      <h4 className="font-bold text-lg mb-2">{t.m6}</h4>
+                      <p className="text-3xl font-black mb-1">$169 <span className="text-sm font-normal text-indigo-200">/ 6 mo</span></p>
+                      <p className="text-xs text-amber-300 font-bold mb-4">Save 15%</p>
+                      <ul className="text-xs space-y-2 text-indigo-100 mb-6">
+                        <li>✔️ Full POS Features</li><li>✔️ Advanced Inventory</li><li>✔️ Priority Support</li>
+                      </ul>
+                    </div>
+                    <button onClick={() => openSubscribeModal(t.m6, "$169.00")} className="w-full bg-white text-indigo-700 font-bold py-2 rounded-xl hover:bg-slate-100">{t.upgrade}</button>
+                  </div>
+
+                  {/* 12 Months Plan */}
+                  <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border dark:border-slate-700 flex flex-col justify-between hover:border-indigo-400 transition-all">
+                    <div>
+                      <h4 className="font-bold text-lg mb-2">{t.m12}</h4>
+                      <p className="text-3xl font-black text-indigo-600 mb-1">$299 <span className="text-sm font-normal text-slate-400">/ 1 yr</span></p>
+                      <p className="text-xs text-emerald-500 font-bold mb-4">Save 25% + Best Value</p>
+                      <ul className="text-xs space-y-2 text-slate-600 dark:text-slate-400 mb-6">
+                        <li>✔️ All Premium Features</li><li>✔️ Multi-Store Support</li><li>✔️ 24/7 VIP Support</li>
+                      </ul>
+                    </div>
+                    <button onClick={() => openSubscribeModal(t.m12, "$299.00")} className="w-full border-2 border-indigo-600 text-indigo-600 dark:text-indigo-400 dark:border-indigo-500 font-bold py-2 rounded-xl hover:bg-indigo-50 dark:hover:bg-indigo-900/30">{t.upgrade}</button>
+                  </div>
+
                 </div>
               </div>
             )}
@@ -498,6 +559,52 @@ export default function FullyResponsivePOS() {
 
           </div>
         </main>
+
+        {/* --- SUBSCRIPTION PAYMENT MODAL (Myanmar Payments Included) --- */}
+        {subModalPlan && (
+          <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+            <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 w-full max-w-md shadow-2xl flex flex-col border dark:border-slate-700">
+              
+              <div className="flex justify-between items-center mb-5">
+                <h3 className="text-lg font-black">{t.payMethod}</h3>
+                <button onClick={() => setSubModalPlan(null)} className="text-rose-500 font-bold text-xl leading-none">✕</button>
+              </div>
+              
+              <div className="mb-6 p-4 bg-indigo-50 dark:bg-slate-800 rounded-xl border border-indigo-100 dark:border-slate-700 flex justify-between items-center">
+                <div>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">{t.subs}</p>
+                  <p className="font-bold text-slate-900 dark:text-white">{subModalPlan.name}</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-xs text-slate-500 dark:text-slate-400">{t.total}</p>
+                  <p className="text-xl font-black text-indigo-600 dark:text-indigo-400">{subModalPlan.price}</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3 mb-2">
+                {[
+                  { name: "KBZPay", icon: "🔵" },
+                  { name: "WavePay", icon: "🌊" },
+                  { name: "AYA Pay", icon: "🔴" },
+                  { name: "CB Pay", icon: "🟣" },
+                  { name: "MPU Card", icon: "💳" },
+                  { name: "Visa / Master", icon: "🌍" }
+                ].map(method => (
+                  <button 
+                    key={method.name} 
+                    onClick={() => handleConfirmSubscription(method.name)} 
+                    className="border dark:border-slate-700 p-4 rounded-xl hover:border-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 transition-all flex flex-col items-center gap-2 active:scale-95"
+                  >
+                    <span className="text-3xl drop-shadow-sm">{method.icon}</span>
+                    <span className="font-bold text-xs">{method.name}</span>
+                  </button>
+                ))}
+              </div>
+              <p className="text-[10px] text-center text-slate-400 mt-4">Secure & Encrypted Payment Gateway</p>
+
+            </div>
+          </div>
+        )}
 
         {/* --- MOBILE FLOATING CART BUTTON --- */}
         {activeTab === "POS" && isShiftOpen && (
@@ -533,10 +640,13 @@ export default function FullyResponsivePOS() {
               <div className="pt-3 border-t dark:border-slate-800 space-y-2">
                 <div className="flex justify-between font-black text-xl text-indigo-600"><span>{t.total}</span><span>{symbols[currency]}{getPrice(grandTotalUSD)}</span></div>
                 <div className="grid grid-cols-3 gap-2 pt-2">
-                  <button onClick={() => handlePay("Cash")} disabled={!cart.length} className="bg-indigo-50 dark:bg-slate-800 text-indigo-600 border dark:border-slate-700 py-3 rounded-xl font-bold text-xs">💵 {t.cash}</button>
-                  <button onClick={() => handlePay("Card")} disabled={!cart.length} className="bg-indigo-50 dark:bg-slate-800 text-indigo-600 border dark:border-slate-700 py-3 rounded-xl font-bold text-xs">💳 {t.card}</button>
-                  <button onClick={() => handlePay("Wallet")} disabled={!cart.length} className="bg-indigo-50 dark:bg-slate-800 text-indigo-600 border dark:border-slate-700 py-3 rounded-xl font-bold text-xs">📱 {t.wallet}</button>
+                  <button onClick={() => handlePay("Cash")} disabled={!cart.length} className="bg-indigo-50 dark:bg-slate-800 text-indigo-600 border dark:border-slate-700 py-3 rounded-xl font-bold text-xs hover:border-indigo-500">💵 {t.cash}</button>
+                  <button onClick={() => handlePay("Card")} disabled={!cart.length} className="bg-indigo-50 dark:bg-slate-800 text-indigo-600 border dark:border-slate-700 py-3 rounded-xl font-bold text-xs hover:border-indigo-500">💳 {t.card}</button>
+                  <button onClick={() => handlePay("Wallet")} disabled={!cart.length} className="bg-indigo-50 dark:bg-slate-800 text-indigo-600 border dark:border-slate-700 py-3 rounded-xl font-bold text-xs hover:border-indigo-500">📱 {t.wallet}</button>
                 </div>
+                {lastReceipt && (
+                  <button onClick={() => window.print()} className="w-full bg-slate-800 text-white py-3 rounded-xl text-xs font-bold mt-2 shadow">🖨️ {t.print}</button>
+                )}
               </div>
             </div>
           </div>
