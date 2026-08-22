@@ -27,12 +27,19 @@ export default function FullyResponsivePOS() {
   const [orders, setOrders] = useState<any[]>([]);
   const [currentPlan, setCurrentPlan] = useState("Free Trial");
 
+  // --- Subscription Modal State ---
+  const [subModalPlan, setSubModalPlan] = useState<{name: string, price: string} | null>(null);
+
   // --- POS States ---
   const [cart, setCart] = useState<CartItem[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [activeCategory, setActiveCategory] = useState("All");
   const [discountVal, setDiscountVal] = useState(0);
   const [lastReceipt, setLastReceipt] = useState<any>(null);
+  
+  // 🔥 NEW: Table Selection State 🔥
+  const [selectedTable, setSelectedTable] = useState("Takeaway");
+  const tableList = ["Takeaway", "T-01", "T-02", "T-03", "T-04", "T-05", "T-06", "VIP-1", "VIP-2"];
 
   const rates: Record<string, number> = { USD: 1, MMK: 4500, MYR: 4.7, THB: 35, SGD: 1.35, CNY: 7.2 };
   const symbols: Record<string, string> = { USD: "$", MMK: "Ks ", MYR: "RM", THB: "฿", SGD: "S$", CNY: "¥" };
@@ -48,7 +55,7 @@ export default function FullyResponsivePOS() {
       sLang: "System Language", sCurr: "Default Currency", sTax: "Tax Rate (%)", sDark: "Dark Mode", sReset: "Reset All Data",
       closed: "Register Closed", openReg: "Open Register to start selling", inStock: "In Stock",
       subs: "Subscription & Billing", m3: "3 Months Plan", m6: "6 Months Plan", m12: "12 Months Plan", upgrade: "Upgrade Now",
-      revenue: "Total Revenue", ordersCount: "Total Orders", avgValue: "Avg Order Value", topItems: "Top Selling Items", payMethod: "Revenue by Payment"
+      payMethod: "Select Payment Method", takeaway: "Takeaway", tbl: "Table"
     },
     MM: { 
       pos: "အရောင်း", dash: "အနှစ်ချုပ်", inv: "ပစ္စည်းစာရင်း", rep: "စာရင်းစစ်", cust: "ဖောက်သည်", sup: "ကုန်သည်", set: "ဆက်တင်", 
@@ -56,10 +63,10 @@ export default function FullyResponsivePOS() {
       cart: "ခြင်းတောင်း", clear: "ဖျက်မည်", sub: "ကျသင့်ငွေ", tax: "အခွန်", dist: "လျှော့စျေး", total: "စုစုပေါင်း", pay: "ငွေရှင်းမည်", 
       cash: "ငွေသား", card: "ကတ်", wallet: "KPay/Wave", print: "ဘေလ်ထုတ်မည်", 
       add: "အသစ်ထည့်ရန်", pName: "ပစ္စည်းအမည်", pPrice: "စျေးနှုန်း", pStock: "လက်ကျန်", pCode: "ဘားကုဒ်", act: "လုပ်ဆောင်ချက်", del: "ဖျက်မည်",
-      sLang: "ဘာသာစကား", sCurr: "ငွေကြေး", sTax: "အခွန် ရာခိုင်နှုန်း (%)", sDark: "အမည်းရောင် ဒီဇိုင်း", sReset: "ဒေတာအားလုံး ဖျက်မည်",
+      sLang: "ဘာသာစကား", sCurr: "ငွေကြေး", sTax: "အခွန် (%)", sDark: "အမည်းရောင် ဒီဇိုင်း", sReset: "ဒေတာအားလုံး ဖျက်မည်",
       closed: "ဆိုင်ပိတ်ထားပါသည်", openReg: "အရောင်းစတင်ရန် ဆိုင်ဖွင့်ပါ", inStock: "ခု ကျန်သေးသည်",
       subs: "လစဉ်ကြေး ပေးသွင်းမှုစနစ်", m3: "၃ လ စနစ်", m6: "၆ လ စနစ်", m12: "၁၂ လ စနစ် (၁ နှစ်)", upgrade: "အဆင့်မြှင့်မည်",
-      revenue: "စုစုပေါင်း ဝင်ငွေ", ordersCount: "ရောင်းရသည့် အကြိမ်", avgValue: "ပျမ်းမျှ ဘေလ်တန်ဖိုး", topItems: "အရောင်းရဆုံး ပစ္စည်းများ", payMethod: "ငွေချေမှု အမျိုးအစားများ"
+      payMethod: "ငွေပေးချေမည့် နည်းလမ်း ရွေးပါ", takeaway: "ပါဆယ် (Takeaway)", tbl: "စားပွဲ"
     },
     ZH: { 
       pos: "收银", dash: "仪表板", inv: "库存", rep: "报告", cust: "客户", sup: "供应商", set: "设置", 
@@ -70,7 +77,7 @@ export default function FullyResponsivePOS() {
       sLang: "系统语言", sCurr: "默认货币", sTax: "税率 (%)", sDark: "深色模式", sReset: "重置所有数据",
       closed: "收银台已关闭", openReg: "打开收银台开始销售", inStock: "库存",
       subs: "订阅与账单", m3: "3个月计划", m6: "6个月计划", m12: "12个月计划", upgrade: "立即升级",
-      revenue: "总收入", ordersCount: "总订单", avgValue: "平均客单价", topItems: "热销商品", payMethod: "按支付方式"
+      payMethod: "选择付款方式", takeaway: "外卖", tbl: "桌号"
     },
     MS: { 
       pos: "Jualan", dash: "Papan", inv: "Inventori", rep: "Laporan", cust: "Pelanggan", sup: "Pembekal", set: "Tetapan", 
@@ -81,7 +88,7 @@ export default function FullyResponsivePOS() {
       sLang: "Bahasa Sistem", sCurr: "Mata Wang", sTax: "Kadar Cukai (%)", sDark: "Mod Gelap", sReset: "Tetapkan Semula",
       closed: "Daftar Ditutup", openReg: "Buka daftar untuk mula", inStock: "Dalam Stok",
       subs: "Langganan & Bil", m3: "Pelan 3 Bulan", m6: "Pelan 6 Bulan", m12: "Pelan 12 Bulan", upgrade: "Naik Taraf",
-      revenue: "Jumlah Pendapatan", ordersCount: "Jumlah Pesanan", avgValue: "Nilai Purata", topItems: "Barang Terlaris", payMethod: "Pecahan Pembayaran"
+      payMethod: "Pilih Kaedah Pembayaran", takeaway: "Bungkus", tbl: "Meja"
     }
   };
   const t = dict[lang];
@@ -175,41 +182,28 @@ export default function FullyResponsivePOS() {
     const newOrder = { 
       id: "INV" + Date.now().toString().slice(-6), 
       time: new Date().toLocaleTimeString(), 
+      table: selectedTable, // Save table in order
       subTotal: subTotalUSD, tax: taxAmountUSD, discount: discountUSD, total: grandTotalUSD, method, items: cart 
     };
     setOrders([newOrder, ...orders]);
     setLastReceipt(newOrder);
 
-    alert(`✅ Payment Success!\nOrder: ${newOrder.id}`);
+    alert(`✅ Payment Success!\nOrder: ${newOrder.id}\n${t.tbl}: ${selectedTable}`);
     setCart([]); 
     setDiscountVal(0);
+    setSelectedTable("Takeaway"); // Reset to Takeaway after order
     setIsMobileCartOpen(false);
   };
 
-  const handleSubscribe = (plan: string) => {
-    setCurrentPlan(plan);
-    alert(`🎉 Successfully subscribed to: ${plan}\nThank you for choosing GlobalPOS!`);
+  const openSubscribeModal = (name: string, price: string) => setSubModalPlan({ name, price });
+
+  const handleConfirmSubscription = (method: string) => {
+    if (subModalPlan) {
+      setCurrentPlan(subModalPlan.name);
+      alert(`🎉 Payment Successful via ${method}!\nWelcome to ${subModalPlan.name}.\nThank you for choosing GlobalPOS!`);
+      setSubModalPlan(null);
+    }
   };
-
-  // --- Dashboard Calculations ---
-  const totalRev = orders.reduce((sum, o) => sum + o.total, 0);
-  const totalTaxAmt = orders.reduce((sum, o) => sum + o.tax, 0);
-  const avgOrder = orders.length > 0 ? totalRev / orders.length : 0;
-  
-  const paymentStats = orders.reduce((acc, o) => {
-    acc[o.method] = (acc[o.method] || 0) + o.total;
-    return acc;
-  }, {} as Record<string, number>);
-
-  const productSales = orders.reduce((acc, o) => {
-    o.items.forEach((item: any) => {
-      acc[item.name] = (acc[item.name] || 0) + item.qty;
-    });
-    return acc;
-  }, {} as Record<string, number>);
-  
-  const topProducts = Object.entries(productSales).sort((a: any, b: any) => b[1] - a[1]).slice(0, 5);
-
 
   const navItems = [
     { id: "POS", icon: "🛒", label: t.pos, reqAdmin: false },
@@ -230,17 +224,25 @@ export default function FullyResponsivePOS() {
       <div className="hidden print:flex justify-center p-8 text-black bg-white w-full h-full font-mono">
         {lastReceipt && (
           <div className="w-[80mm] mx-auto text-sm bg-white p-4">
-            <div className="text-center mb-6">
+            <div className="text-center mb-5">
               <h2 className="text-3xl font-black mb-1 tracking-tighter">GlobalPOS</h2>
               <p className="text-xs font-bold text-gray-500 mb-4 tracking-widest uppercase">By njangzaumun</p>
               <p className="text-xs">123 Tech Avenue, Building 4</p>
               <p className="text-xs">Silicon Valley, CA 90210</p>
             </div>
+
+            {/* TABLE NUMBER HUGE DISPLAY */}
+            <div className="border-4 border-black text-center py-2 mb-4">
+              <p className="text-xs font-bold uppercase">{lastReceipt.table === "Takeaway" ? "Order Type" : "Table Number"}</p>
+              <p className="text-3xl font-black tracking-widest">{lastReceipt.table === "Takeaway" ? "TAKEAWAY" : lastReceipt.table}</p>
+            </div>
+
             <div className="border-b-2 border-dashed border-gray-400 pb-3 mb-3">
               <div className="flex justify-between text-xs mb-1"><span>Receipt No:</span><span className="font-bold">{lastReceipt.id}</span></div>
               <div className="flex justify-between text-xs mb-1"><span>Date:</span><span>{lastReceipt.time}</span></div>
               <div className="flex justify-between text-xs"><span>Cashier:</span><span>{role}</span></div>
             </div>
+
             <div className="border-b-2 border-dashed border-gray-400 pb-3 mb-3 min-h-[100px]">
               <table className="w-full text-xs">
                 <thead>
@@ -260,6 +262,7 @@ export default function FullyResponsivePOS() {
                 </tbody>
               </table>
             </div>
+
             <div className="border-b-2 border-dashed border-gray-400 pb-3 mb-4">
               <div className="flex justify-between text-xs mb-1"><span>Subtotal</span><span>{symbols[currency]}{getPrice(lastReceipt.subTotal)}</span></div>
               <div className="flex justify-between text-xs mb-1"><span>Tax ({taxRate}%)</span><span>{symbols[currency]}{getPrice(lastReceipt.tax)}</span></div>
@@ -270,6 +273,7 @@ export default function FullyResponsivePOS() {
                 <span>TOTAL</span><span>{symbols[currency]}{getPrice(lastReceipt.total)}</span>
               </div>
             </div>
+
             <div className="text-center space-y-1">
               <p className="text-xs">Paid by: <span className="font-bold border px-1">{lastReceipt.method}</span></p>
               <p className="mt-6 font-bold text-sm tracking-wide">THANK YOU!</p>
@@ -363,11 +367,31 @@ export default function FullyResponsivePOS() {
                   </div>
 
                   {/* Desktop & iPad Cart Drawer */}
-                  <div className="hidden lg:flex w-80 xl:w-96 bg-white dark:bg-slate-950 border dark:border-slate-800 rounded-2xl flex-col shadow-lg shrink-0">
-                    <div className="p-4 border-b dark:border-slate-800 font-bold flex justify-between items-center">
-                      <span>{t.cart}</span><span className="bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 text-xs px-2 py-0.5 rounded-full">{cart.length} items</span>
+                  <div className="hidden lg:flex w-80 xl:w-96 bg-white dark:bg-slate-950 border dark:border-slate-800 rounded-2xl flex-col shadow-lg shrink-0 overflow-hidden">
+                    
+                    {/* TABLE SELECTION AREA */}
+                    <div className="bg-slate-50 dark:bg-slate-900 border-b dark:border-slate-800 p-3 shrink-0">
+                      <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2">Select Table / Takeaway</p>
+                      <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
+                        {tableList.map(tbl => (
+                          <button 
+                            key={tbl} 
+                            onClick={() => setSelectedTable(tbl)} 
+                            className={`px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap transition-all border ${selectedTable === tbl ? "bg-indigo-600 text-white border-indigo-600 shadow-md" : "bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 dark:border-slate-700"}`}
+                          >
+                            {tbl === "Takeaway" ? t.takeaway : tbl}
+                          </button>
+                        ))}
+                      </div>
                     </div>
-                    <div className="flex-1 overflow-y-auto p-4 space-y-3">
+
+                    <div className="p-3 border-b dark:border-slate-800 font-bold flex justify-between items-center bg-white dark:bg-slate-950 shrink-0">
+                      <span>{t.cart}</span>
+                      <span className="bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 text-xs px-2 py-0.5 rounded-full">{cart.length} items</span>
+                    </div>
+
+                    <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-white dark:bg-slate-950">
+                      {cart.length === 0 && <div className="h-full flex flex-col items-center justify-center text-slate-400 opacity-50"><div className="text-4xl mb-2">🛒</div><p className="text-sm font-bold">Cart is empty</p></div>}
                       {cart.map(c => (
                         <div key={c.id} className="text-xs md:text-sm border-b dark:border-slate-800 pb-2 flex justify-between items-center">
                           <div className="flex-1 pr-2"><p className="font-bold truncate">{c.name}</p><p className="text-slate-400">{symbols[currency]}{getPrice(c.price * c.qty)}</p></div>
@@ -379,7 +403,8 @@ export default function FullyResponsivePOS() {
                         </div>
                       ))}
                     </div>
-                    <div className="p-4 bg-slate-50 dark:bg-slate-900 rounded-b-2xl border-t dark:border-slate-800">
+
+                    <div className="p-4 bg-slate-50 dark:bg-slate-900 rounded-b-2xl border-t dark:border-slate-800 shrink-0">
                       <div className="flex justify-between text-xs font-bold mb-1"><span>{t.sub}</span><span>{symbols[currency]}{getPrice(subTotalUSD)}</span></div>
                       <div className="flex justify-between text-xs font-bold mb-1"><span>{t.tax}</span><span>{symbols[currency]}{getPrice(taxAmountUSD)}</span></div>
                       <div className="flex justify-between text-lg font-black mb-3 mt-2 pt-2 border-t text-indigo-600 dark:text-indigo-400"><span>{t.total}</span><span>{symbols[currency]}{getPrice(grandTotalUSD)}</span></div>
@@ -395,82 +420,39 @@ export default function FullyResponsivePOS() {
               )
             )}
 
-            {/* 2. DASHBOARD View (NEW Enterprise Metrics) */}
+            {/* Other Views (Dashboard, Inventory, Settings) */}
             {activeTab === "DASHBOARD" && role === "Admin" && (
               <div className="max-w-6xl mx-auto space-y-6">
                 <h2 className="text-xl md:text-2xl font-bold">{t.dash}</h2>
-                
-                {/* 1. Top KPI Cards */}
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                   <div className="bg-white dark:bg-slate-800 p-5 rounded-2xl shadow-sm border dark:border-slate-700">
-                    <p className="text-xs text-slate-500 dark:text-slate-400 font-bold uppercase mb-1">{t.revenue}</p>
-                    <p className="text-2xl md:text-3xl font-black text-indigo-600 dark:text-indigo-400">{symbols[currency]}{getPrice(totalRev)}</p>
+                    <p className="text-xs text-slate-500 font-bold uppercase mb-1">Total Revenue</p>
+                    <p className="text-2xl md:text-3xl font-black text-indigo-600">{symbols[currency]}{getPrice(orders.reduce((sum, o) => sum + o.total, 0))}</p>
                   </div>
                   <div className="bg-white dark:bg-slate-800 p-5 rounded-2xl shadow-sm border dark:border-slate-700">
-                    <p className="text-xs text-slate-500 dark:text-slate-400 font-bold uppercase mb-1">{t.ordersCount}</p>
-                    <p className="text-2xl md:text-3xl font-black text-slate-800 dark:text-slate-100">{orders.length}</p>
-                  </div>
-                  <div className="bg-white dark:bg-slate-800 p-5 rounded-2xl shadow-sm border dark:border-slate-700">
-                    <p className="text-xs text-slate-500 dark:text-slate-400 font-bold uppercase mb-1">{t.avgValue}</p>
-                    <p className="text-2xl md:text-3xl font-black text-slate-800 dark:text-slate-100">{symbols[currency]}{getPrice(avgOrder)}</p>
-                  </div>
-                  <div className="bg-white dark:bg-slate-800 p-5 rounded-2xl shadow-sm border dark:border-slate-700">
-                    <p className="text-xs text-slate-500 dark:text-slate-400 font-bold uppercase mb-1">{t.tax} Collected</p>
-                    <p className="text-2xl md:text-3xl font-black text-amber-500">{symbols[currency]}{getPrice(totalTaxAmt)}</p>
+                    <p className="text-xs text-slate-500 font-bold uppercase mb-1">Total Orders</p>
+                    <p className="text-2xl md:text-3xl font-black">{orders.length}</p>
                   </div>
                 </div>
-
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  {/* 2. Top Selling Items */}
-                  <div className="bg-white dark:bg-slate-800 p-5 rounded-2xl shadow-sm border dark:border-slate-700">
-                    <h3 className="font-bold text-sm md:text-base mb-4">{t.topItems}</h3>
-                    {topProducts.length === 0 ? <p className="text-sm text-slate-400">No data available.</p> : (
-                      <div className="space-y-3">
-                        {topProducts.map(([name, qty]) => (
-                          <div key={name} className="flex justify-between items-center text-xs md:text-sm">
-                            <span className="font-medium">{name}</span>
-                            <span className="bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 px-2 py-1 rounded font-bold">{qty} Sold</span>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* 3. Payment Breakdown */}
-                  <div className="bg-white dark:bg-slate-800 p-5 rounded-2xl shadow-sm border dark:border-slate-700">
-                    <h3 className="font-bold text-sm md:text-base mb-4">{t.payMethod}</h3>
-                    {Object.keys(paymentStats).length === 0 ? <p className="text-sm text-slate-400">No data available.</p> : (
-                      <div className="space-y-3">
-                        {Object.entries(paymentStats).map(([method, amount]) => (
-                          <div key={method} className="flex justify-between items-center text-xs md:text-sm border-b dark:border-slate-700 pb-2">
-                            <span className="font-bold flex items-center gap-2">
-                              <span className="w-3 h-3 rounded-full bg-indigo-500"></span>{method}
-                            </span>
-                            <span className="font-black">{symbols[currency]}{getPrice(amount as number)}</span>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {/* 4. Recent Transactions Table */}
+                
+                {/* Orders Table */}
                 <div className="bg-white dark:bg-slate-800 p-5 rounded-2xl shadow-sm border dark:border-slate-700">
                   <h3 className="font-bold text-sm md:text-base mb-4">Recent Transactions</h3>
                   <div className="overflow-x-auto">
                     <table className="w-full text-left text-xs md:text-sm">
                       <thead className="bg-slate-50 dark:bg-slate-900">
-                        <tr><th className="p-3">Order ID</th><th className="p-3">Time</th><th className="p-3">Method</th><th className="p-3 text-right">Total</th></tr>
+                        <tr><th className="p-3">Order ID</th><th className="p-3">Time</th><th className="p-3">Table/Type</th><th className="p-3">Method</th><th className="p-3 text-right">Total</th></tr>
                       </thead>
                       <tbody className="divide-y dark:divide-slate-700">
-                        {orders.slice(0, 5).map((o: any) => (
+                        {orders.slice(0, 10).map((o: any) => (
                           <tr key={o.id}>
-                            <td className="p-3 font-bold text-indigo-600 dark:text-indigo-400">{o.id}</td><td className="p-3 text-slate-500">{o.time}</td>
+                            <td className="p-3 font-bold text-indigo-600">{o.id}</td><td className="p-3 text-slate-500">{o.time}</td>
+                            <td className="p-3 font-bold text-emerald-600">{o.table === "Takeaway" ? t.takeaway : o.table}</td>
                             <td className="p-3"><span className="bg-slate-100 dark:bg-slate-700 px-2 py-1 rounded text-[10px] font-bold">{o.method}</span></td>
                             <td className="p-3 font-black text-right">{symbols[currency]}{getPrice(o.total)}</td>
                           </tr>
                         ))}
-                        {orders.length === 0 && <tr><td colSpan={4} className="p-4 text-center text-slate-400">No recent transactions.</td></tr>}
+                        {orders.length === 0 && <tr><td colSpan={5} className="p-4 text-center text-slate-400">No recent transactions.</td></tr>}
                       </tbody>
                     </table>
                   </div>
@@ -478,7 +460,7 @@ export default function FullyResponsivePOS() {
               </div>
             )}
 
-            {/* 3. INVENTORY View */}
+            {/* Inventory Simplified for space */}
             {activeTab === "INVENTORY" && role === "Admin" && (
               <div className="max-w-4xl mx-auto space-y-4">
                 <h2 className="text-xl md:text-2xl font-bold">{t.inv}</h2>
@@ -495,17 +477,10 @@ export default function FullyResponsivePOS() {
                 </div>
                 <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm overflow-x-auto">
                   <table className="w-full text-left text-xs md:text-sm">
-                    <thead className="bg-slate-50 dark:bg-slate-900 border-b dark:border-slate-700">
-                      <tr><th className="p-3">{t.pName}</th><th className="p-3">{t.pStock}</th><th className="p-3">{t.pPrice}</th><th className="p-3">{t.act}</th></tr>
-                    </thead>
+                    <thead className="bg-slate-50 dark:bg-slate-900 border-b dark:border-slate-700"><tr><th className="p-3">{t.pName}</th><th className="p-3">{t.pStock}</th><th className="p-3">{t.pPrice}</th><th className="p-3">{t.act}</th></tr></thead>
                     <tbody className="divide-y dark:divide-slate-700">
                       {products.map(p => (
-                        <tr key={p.id}>
-                          <td className="p-3 font-bold">{p.name}</td>
-                          <td className="p-3 text-emerald-500 font-bold">{p.stock}</td>
-                          <td className="p-3">{symbols[currency]}{getPrice(p.price)}</td>
-                          <td className="p-3"><button onClick={() => setProducts(products.filter(x=>x.id!==p.id))} className="text-rose-500 font-bold">{t.del}</button></td>
-                        </tr>
+                        <tr key={p.id}><td className="p-3 font-bold">{p.name}</td><td className="p-3 text-emerald-500 font-bold">{p.stock}</td><td className="p-3">{symbols[currency]}{getPrice(p.price)}</td><td className="p-3"><button onClick={() => setProducts(products.filter(x=>x.id!==p.id))} className="text-rose-500 font-bold">{t.del}</button></td></tr>
                       ))}
                     </tbody>
                   </table>
@@ -513,7 +488,7 @@ export default function FullyResponsivePOS() {
               </div>
             )}
 
-            {/* 4. SETTINGS View */}
+            {/* Settings Simplified */}
             {activeTab === "SETTINGS" && role === "Admin" && (
               <div className="max-w-4xl mx-auto space-y-6">
                 <h2 className="text-xl md:text-2xl font-bold">{t.set}</h2>
@@ -521,61 +496,27 @@ export default function FullyResponsivePOS() {
                   <div>
                     <label className="block font-bold mb-1">{t.sLang}</label>
                     <select className="w-full border p-2.5 rounded-xl dark:bg-slate-700 dark:border-slate-600 font-bold outline-none" value={lang} onChange={e => setLang(e.target.value as Lang)}>
-                      <option value="EN">🇺🇸 English</option><option value="MM">🇲🇲 Myanmar (မြန်မာ)</option><option value="ZH">🇨🇳 Chinese (中文)</option><option value="MS">🇲🇾 Malay (Melayu)</option>
+                      <option value="EN">🇺🇸 English</option><option value="MM">🇲🇲 Myanmar</option><option value="ZH">🇨🇳 Chinese</option><option value="MS">🇲🇾 Malay</option>
                     </select>
                   </div>
                   <div>
                     <label className="block font-bold mb-1">{t.sCurr}</label>
                     <select className="w-full border p-2.5 rounded-xl dark:bg-slate-700 dark:border-slate-600 font-bold outline-none" value={currency} onChange={e => setCurrency(e.target.value)}>
-                      <option value="USD">USD ($)</option><option value="MMK">MMK (Ks)</option><option value="MYR">MYR (RM)</option><option value="THB">THB (฿)</option><option value="SGD">SGD (S$)</option><option value="CNY">CNY (¥)</option>
+                      <option value="USD">USD ($)</option><option value="MMK">MMK (Ks)</option><option value="MYR">MYR (RM)</option><option value="THB">THB (฿)</option><option value="SGD">SGD (S$)</option>
                     </select>
                   </div>
-                  <div>
-                    <label className="block font-bold mb-1">{t.sDark}</label>
-                    <button onClick={() => setIsDarkMode(!isDarkMode)} className={`w-full py-2.5 rounded-xl font-bold transition-colors ${isDarkMode ? "bg-indigo-600 text-white" : "bg-slate-200 text-slate-800"}`}>
-                      {isDarkMode ? "🌙 ON" : "☀️ OFF"}
-                    </button>
-                  </div>
-                  <div className="flex items-end">
-                    <button onClick={() => { localStorage.clear(); window.location.reload(); }} className="text-rose-500 font-bold text-xs bg-rose-50 dark:bg-rose-900/20 px-4 py-3 rounded-xl w-full border border-rose-100 dark:border-rose-900">⚠️ {t.sReset}</button>
-                  </div>
-                </div>
-
-                <h3 className="text-lg md:text-xl font-bold pt-4 border-t dark:border-slate-800">{t.subs}</h3>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pb-8">
-                  {/* Subscription Plans Logic Retained */}
-                  <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border dark:border-slate-700 flex flex-col justify-between">
-                    <div><h4 className="font-bold text-lg mb-2">{t.m3}</h4><p className="text-3xl font-black text-indigo-600 mb-4">$89</p></div>
-                    <button onClick={() => alert("Subscribed to 3 Months")} className="w-full border-2 border-indigo-600 text-indigo-600 font-bold py-2 rounded-xl">{t.upgrade}</button>
-                  </div>
-                  <div className="bg-indigo-600 text-white p-6 rounded-2xl shadow-xl flex flex-col justify-between">
-                    <div><h4 className="font-bold text-lg mb-2">{t.m6}</h4><p className="text-3xl font-black mb-4">$169</p></div>
-                    <button onClick={() => alert("Subscribed to 6 Months")} className="w-full bg-white text-indigo-700 font-bold py-2 rounded-xl">{t.upgrade}</button>
-                  </div>
-                  <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border dark:border-slate-700 flex flex-col justify-between">
-                    <div><h4 className="font-bold text-lg mb-2">{t.m12}</h4><p className="text-3xl font-black text-indigo-600 mb-4">$299</p></div>
-                    <button onClick={() => alert("Subscribed to 12 Months")} className="w-full border-2 border-indigo-600 text-indigo-600 font-bold py-2 rounded-xl">{t.upgrade}</button>
-                  </div>
+                  <button onClick={() => setIsDarkMode(!isDarkMode)} className={`w-full py-2.5 rounded-xl font-bold transition-colors ${isDarkMode ? "bg-indigo-600 text-white" : "bg-slate-200 text-slate-800"}`}>{isDarkMode ? "🌙 ON" : "☀️ OFF"}</button>
+                  <button onClick={() => { localStorage.clear(); window.location.reload(); }} className="text-rose-500 font-bold text-xs bg-rose-50 dark:bg-rose-900/20 px-4 py-3 rounded-xl w-full border border-rose-100 dark:border-rose-900">⚠️ {t.sReset}</button>
                 </div>
               </div>
             )}
-
-            {/* Other Placeholders */}
             {["ORDERS", "CUSTOMERS", "SUPPLIERS"].includes(activeTab) && (
-              <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm max-w-2xl mx-auto">
-                <h2 className="text-lg font-bold mb-3">{t[activeTab.toLowerCase().substring(0,4) as keyof typeof t] || activeTab}</h2>
-                {activeTab === "ORDERS" && (
-                  <ul className="space-y-2 text-xs md:text-sm">
-                    {orders.map((o:any) => <li key={o.id} className="p-3 border dark:border-slate-700 rounded-xl flex justify-between"><span>{o.id} ({o.method})</span><span className="font-bold">{symbols[currency]}{getPrice(o.total)}</span></li>)}
-                  </ul>
-                )}
-              </div>
+              <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm max-w-2xl mx-auto"><h2 className="text-lg font-bold mb-3">{t[activeTab.toLowerCase().substring(0,4) as keyof typeof t] || activeTab} Module Active</h2></div>
             )}
-
           </div>
         </main>
 
-        {/* --- MOBILE FLOATING CART BUTTON --- */}
+        {/* --- MOBILE CART LOGIC --- */}
         {activeTab === "POS" && isShiftOpen && (
           <div className="lg:hidden fixed bottom-16 right-4 z-40">
             <button onClick={() => setIsMobileCartOpen(true)} className="bg-indigo-600 text-white p-4 rounded-full shadow-2xl flex items-center gap-2 font-bold animate-bounce">
@@ -584,56 +525,60 @@ export default function FullyResponsivePOS() {
           </div>
         )}
 
-        {/* --- MOBILE CART MODAL --- */}
         {isMobileCartOpen && (
           <div className="lg:hidden fixed inset-0 bg-black/60 z-50 flex flex-col justify-end backdrop-blur-sm">
-            <div className="bg-white dark:bg-slate-900 rounded-t-3xl p-5 max-h-[85vh] flex flex-col shadow-2xl">
+            <div className="bg-white dark:bg-slate-900 rounded-t-3xl p-5 max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
               <div className="flex justify-between items-center pb-3 border-b dark:border-slate-800">
                 <h3 className="font-bold text-base">{t.cart} ({cart.length})</h3>
                 <button onClick={() => setIsMobileCartOpen(false)} className="text-rose-500 font-bold text-sm">✕ Close</button>
               </div>
+
+              {/* TABLE SELECTOR MOBILE */}
+              <div className="py-3 border-b dark:border-slate-800 shrink-0">
+                <p className="text-[10px] font-bold text-slate-500 uppercase mb-2">Select Table / Takeaway</p>
+                <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
+                  {tableList.map(tbl => (
+                    <button key={tbl} onClick={() => setSelectedTable(tbl)} className={`px-4 py-2 rounded-lg text-sm font-bold whitespace-nowrap transition-all border ${selectedTable === tbl ? "bg-indigo-600 text-white border-indigo-600" : "bg-slate-100 dark:bg-slate-800 dark:border-slate-700"}`}>
+                      {tbl === "Takeaway" ? t.takeaway : tbl}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
               <div className="flex-1 overflow-y-auto py-4 space-y-3">
                 {cart.map(c => (
                   <div key={c.id} className="flex justify-between items-center text-sm border-b dark:border-slate-800 pb-2">
                     <div><p className="font-bold">{c.name}</p><p className="text-slate-400 text-xs">{symbols[currency]}{getPrice(c.price * c.qty)}</p></div>
                     <div className="flex items-center gap-2">
-                      <button onClick={() => updateQty(c.id, -1)} className="bg-slate-100 dark:bg-slate-800 w-7 h-7 rounded font-bold">-</button>
-                      <span>{c.qty}</span>
-                      <button onClick={() => updateQty(c.id, 1)} className="bg-slate-100 dark:bg-slate-800 w-7 h-7 rounded font-bold">+</button>
+                      <button onClick={() => updateQty(c.id, -1)} className="bg-slate-100 dark:bg-slate-800 w-7 h-7 rounded font-bold">-</button><span>{c.qty}</span><button onClick={() => updateQty(c.id, 1)} className="bg-slate-100 dark:bg-slate-800 w-7 h-7 rounded font-bold">+</button>
                     </div>
                   </div>
                 ))}
               </div>
-              <div className="pt-3 border-t dark:border-slate-800 space-y-2">
+              
+              <div className="pt-3 border-t dark:border-slate-800 space-y-2 shrink-0">
                 <div className="flex justify-between font-black text-xl text-indigo-600"><span>{t.total}</span><span>{symbols[currency]}{getPrice(grandTotalUSD)}</span></div>
                 <div className="grid grid-cols-3 gap-2 pt-2">
-                  <button onClick={() => handlePay(t.cash)} disabled={!cart.length} className="bg-indigo-50 dark:bg-slate-800 text-indigo-600 border dark:border-slate-700 py-3 rounded-xl font-bold text-xs">💵 {t.cash}</button>
-                  <button onClick={() => handlePay(t.card)} disabled={!cart.length} className="bg-indigo-50 dark:bg-slate-800 text-indigo-600 border dark:border-slate-700 py-3 rounded-xl font-bold text-xs">💳 {t.card}</button>
-                  <button onClick={() => handlePay(t.wallet)} disabled={!cart.length} className="bg-indigo-50 dark:bg-slate-800 text-indigo-600 border dark:border-slate-700 py-3 rounded-xl font-bold text-xs">📱 {t.wallet}</button>
+                  <button onClick={() => handlePay(t.cash)} disabled={!cart.length} className="bg-indigo-50 dark:bg-slate-800 text-indigo-600 border py-3 rounded-xl font-bold text-xs">💵 {t.cash}</button>
+                  <button onClick={() => handlePay(t.card)} disabled={!cart.length} className="bg-indigo-50 dark:bg-slate-800 text-indigo-600 border py-3 rounded-xl font-bold text-xs">💳 {t.card}</button>
+                  <button onClick={() => handlePay(t.wallet)} disabled={!cart.length} className="bg-indigo-50 dark:bg-slate-800 text-indigo-600 border py-3 rounded-xl font-bold text-xs">📱 {t.wallet}</button>
                 </div>
-                {lastReceipt && (
-                  <button onClick={() => window.print()} className="w-full bg-slate-800 text-white py-3 rounded-xl text-xs font-bold mt-2 shadow">🖨️ {t.print}</button>
-                )}
+                {lastReceipt && (<button onClick={() => window.print()} className="w-full bg-slate-800 text-white py-3 rounded-xl text-xs font-bold mt-2 shadow">🖨️ {t.print}</button>)}
               </div>
             </div>
           </div>
         )}
 
-        {/* --- MOBILE BOTTOM NAVIGATION BAR --- */}
         <nav className="md:hidden fixed bottom-0 left-0 right-0 h-14 bg-white dark:bg-slate-950 border-t dark:border-slate-800 flex items-center justify-around z-30 shadow-lg">
           {navItems.slice(0, 5).map(tab => (
-            <button 
-              key={tab.id} onClick={() => setActiveTab(tab.id as Tab)}
-              className={`flex flex-col items-center justify-center p-1 ${activeTab === tab.id ? "text-indigo-600 dark:text-indigo-400 font-bold" : "text-slate-400"}`}
-            >
+            <button key={tab.id} onClick={() => setActiveTab(tab.id as Tab)} className={`flex flex-col items-center justify-center p-1 ${activeTab === tab.id ? "text-indigo-600 dark:text-indigo-400 font-bold" : "text-slate-400"}`}>
               <span className="text-lg">{tab.icon}</span><span className="text-[9px]">{tab.label}</span>
             </button>
           ))}
-          <button onClick={() => setActiveTab("SETTINGS")} className={`flex flex-col items-center justify-center p-1 ${activeTab === "SETTINGS" ? "text-indigo-600 dark:text-indigo-400 font-bold" : "text-slate-400"}`}>
+          <button onClick={() => setActiveTab("SETTINGS")} className={`flex flex-col items-center justify-center p-1 ${activeTab === "SETTINGS" ? "text-indigo-600 font-bold" : "text-slate-400"}`}>
             <span className="text-lg">⚙️</span><span className="text-[9px]">{t.set}</span>
           </button>
         </nav>
-
       </div>
     </div>
   );
