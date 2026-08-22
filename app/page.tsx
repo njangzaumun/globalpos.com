@@ -4,11 +4,9 @@ import { useState, useMemo, useEffect } from "react";
 // --- Types ---
 type Product = { id: string; name: string; price: number; category: string; stock: number; barcode: string; image: string };
 type CartItem = Product & { qty: number };
-type Tab = "POS" | "TABLES" | "DASHBOARD" | "INVENTORY" | "REPORTS" | "SETTINGS";
+type Tab = "POS" | "DASHBOARD" | "INVENTORY" | "ORDERS" | "CUSTOMERS" | "SUPPLIERS" | "SETTINGS";
 type Role = "Admin" | "Cashier";
 type Lang = "EN" | "MM" | "ZH" | "MS";
-type TableStatus = "Available" | "Occupied";
-type DineInTable = { id: number; name: string; status: TableStatus; bill: number };
 
 export default function UltimatePOS() {
   const [isLoaded, setIsLoaded] = useState(false);
@@ -22,10 +20,10 @@ export default function UltimatePOS() {
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [isShiftOpen, setIsShiftOpen] = useState(false);
 
-  // --- Data States (LocalStorage) ---
+  // --- Data States ---
   const [products, setProducts] = useState<Product[]>([]);
+  const [categories, setCategories] = useState<string[]>(["Coffee", "Meals", "Beverage"]);
   const [orders, setOrders] = useState<any[]>([]);
-  const [shift, setShift] = useState({ gross: 0, net: 0, tax: 0, discount: 0, cash: 0, card: 0, wallet: 0, orders: 0 });
 
   // --- POS States ---
   const [cart, setCart] = useState<CartItem[]>([]);
@@ -33,46 +31,79 @@ export default function UltimatePOS() {
   const [activeCategory, setActiveCategory] = useState("All");
   const [discountVal, setDiscountVal] = useState(0);
   const [lastReceipt, setLastReceipt] = useState<any>(null);
-  
-  // --- Tables State ---
-  const [tables, setTables] = useState<DineInTable[]>(Array.from({length: 12}, (_, i) => ({ id: i+1, name: `T-${i+1}`, status: "Available", bill: 0 })));
-  const [selectedTable, setSelectedTable] = useState<number | null>(null);
-
-  // --- Inventory State ---
-  const [newProd, setNewProd] = useState({ name: "", price: "", cat: "Meals", stock: "50", barcode: "", image: "" });
 
   const rates: Record<string, number> = { USD: 1, MMK: 4500, MYR: 4.7, THB: 35, SGD: 1.35, CNY: 7.2 };
   const symbols: Record<string, string> = { USD: "$", MMK: "Ks ", MYR: "RM", THB: "฿", SGD: "S$", CNY: "¥" };
 
-  // --- 100% Full Translation Dictionary ---
+  // --- 🌍 FULL MULTI-LANGUAGE DICTIONARY ---
   const dict = {
-    EN: { pos: "POS", tables: "Tables", dash: "Dashboard", inv: "Inventory", rep: "Reports", set: "Settings", search: "Search or scan barcode...", open: "Open Shift", close: "Close Shift", pay: "Pay", total: "Total", sub: "Subtotal", tax: "Tax", disc: "Discount", clear: "Clear All", cash: "Cash", card: "Card", wallet: "E-Wallet", print: "Print Receipt", admin: "Admin", cashier: "Cashier", add: "Add Product", name: "Product Name", price: "Price", stock: "Stock", barcode: "Barcode", image: "Image URL", save: "Save", del: "Delete", avail: "Available", occ: "Occupied", selTable: "Select Table", walkin: "Walk-in Customer", regClosed: "Register Closed", openRegAlert: "Please open your shift to start selling." },
-    MM: { pos: "အရောင်း", tables: "စားပွဲများ", dash: "အနှစ်ချုပ်", inv: "ကုန်ပစ္စည်းစာရင်း", rep: "စာရင်းစစ်", set: "ဆက်တင်", search: "ဘားကုဒ် သို့ ရှာရန်...", open: "ဆိုင်ဖွင့်မည်", close: "ဆိုင်ပိတ်မည်", pay: "ငွေရှင်းမည်", total: "စုစုပေါင်း", sub: "ကျသင့်ငွေ", tax: "အခွန်", disc: "လျှော့စျေး", clear: "ဖျက်မည်", cash: "ငွေသား", card: "ကတ်", wallet: "E-Wallet", print: "ဘေလ်ထုတ်မည်", admin: "အက်ဒမင် (Admin)", cashier: "ငွေရှင်းစာရေး (Cashier)", add: "ပစ္စည်းအသစ်ထည့်ရန်", name: "ပစ္စည်းအမည်", price: "စျေးနှုန်း", stock: "လက်ကျန်", barcode: "ဘားကုဒ်", image: "ပုံလင့်ခ် (Image URL)", save: "သိမ်းမည်", del: "ဖျက်မည်", avail: "အားလပ်", occ: "လူရှိ", selTable: "စားပွဲရွေးပါ", walkin: "ဆိုင်လာဝယ်သူ", regClosed: "ဆိုင်ပိတ်ထားသည်", openRegAlert: "အရောင်းစတင်ရန် ဆိုင်ဖွင့်မည်ကို နှိပ်ပါ။" },
-    ZH: { pos: "收银", tables: "餐桌", dash: "仪表板", inv: "库存", rep: "报告", set: "设置", search: "搜索或扫描...", open: "开班", close: "结班", pay: "付款", total: "总计", sub: "小计", tax: "税", disc: "折扣", clear: "清除", cash: "现金", card: "刷卡", wallet: "电子钱包", print: "打印收据", admin: "管理员", cashier: "收银员", add: "添加产品", name: "产品名称", price: "价格", stock: "库存", barcode: "条码", image: "图片链接", save: "保存", del: "删除", avail: "空闲", occ: "占用", selTable: "选桌", walkin: "散客", regClosed: "收银机已关闭", openRegAlert: "请开班以开始销售。" },
-    MS: { pos: "Jualan", tables: "Meja", dash: "Dashboard", inv: "Inventori", rep: "Laporan", set: "Tetapan", search: "Cari atau imbas...", open: "Buka Shift", close: "Tutup Shift", pay: "Bayar", total: "Jumlah", sub: "Subjumlah", tax: "Cukai", disc: "Diskaun", clear: "Kosongkan", cash: "Tunai", card: "Kad", wallet: "E-Dompet", print: "Cetak Resit", admin: "Admin", cashier: "Juruwang", add: "Tambah Produk", name: "Nama Produk", price: "Harga", stock: "Stok", barcode: "Kod Bar", image: "URL Imej", save: "Simpan", del: "Padam", avail: "Kosong", occ: "Penuh", selTable: "Pilih Meja", walkin: "Pelanggan Biasa", regClosed: "Daftar Ditutup", openRegAlert: "Sila buka shift anda." }
+    EN: { 
+      pos: "POS", dash: "Dashboard", inv: "Inventory", rep: "Reports", cust: "Customers", sup: "Suppliers", set: "Settings", 
+      search: "Search or Barcode...", open: "Open Shift", close: "Close Shift", 
+      cart: "Current Cart", clear: "Clear All", sub: "Subtotal", tax: "Tax", dist: "Discount", total: "Total Due", pay: "Pay", 
+      cash: "Cash", card: "Card", wallet: "Wallet", print: "Print Receipt", 
+      add: "Add Product", pName: "Product Name", pPrice: "Price", pStock: "Stock", pCode: "Barcode", act: "Action", del: "Delete",
+      sLang: "System Language", sCurr: "Default Currency", sTax: "Tax Rate (%)", sDark: "Dark Mode", sReset: "Reset All Data",
+      closed: "Register Closed", openReg: "Open Register to start selling", inStock: "In Stock"
+    },
+    MM: { 
+      pos: "အရောင်း", dash: "အနှစ်ချုပ်", inv: "ပစ္စည်းစာရင်း", rep: "စာရင်းစစ်", cust: "ဖောက်သည်", sup: "ကုန်သည်", set: "ဆက်တင်", 
+      search: "ရှာဖွေရန် / ဘားကုဒ်...", open: "ဆိုင်ဖွင့်မည်", close: "ဆိုင်ပိတ်မည်", 
+      cart: "ခြင်းတောင်း", clear: "အကုန်ဖျက်မည်", sub: "ကျသင့်ငွေ", tax: "အခွန်", dist: "လျှော့စျေး", total: "စုစုပေါင်း", pay: "ငွေရှင်းမည်", 
+      cash: "ငွေသား", card: "ကတ်", wallet: "KPay/Wave", print: "ဘေလ်ထုတ်မည်", 
+      add: "အသစ်ထည့်ရန်", pName: "ပစ္စည်းအမည်", pPrice: "စျေးနှုန်း", pStock: "လက်ကျန်", pCode: "ဘားကုဒ်", act: "လုပ်ဆောင်ချက်", del: "ဖျက်မည်",
+      sLang: "ဘာသာစကား", sCurr: "ငွေကြေး", sTax: "အခွန် ရာခိုင်နှုန်း (%)", sDark: "အမည်းရောင် ဒီဇိုင်း", sReset: "ဒေတာအားလုံး ဖျက်မည်",
+      closed: "ဆိုင်ပိတ်ထားပါသည်", openReg: "အရောင်းစတင်ရန် ဆိုင်ဖွင့်ပါ", inStock: "ခု ကျန်သေးသည်"
+    },
+    ZH: { 
+      pos: "收银", dash: "仪表板", inv: "库存", rep: "报告", cust: "客户", sup: "供应商", set: "设置", 
+      search: "搜索 / 条码...", open: "开班", close: "结班", 
+      cart: "购物车", clear: "清空", sub: "小计", tax: "税", dist: "折扣", total: "总计", pay: "付款", 
+      cash: "现金", card: "刷卡", wallet: "钱包", print: "打印收据", 
+      add: "添加产品", pName: "名称", pPrice: "价格", pStock: "库存", pCode: "条码", act: "操作", del: "删除",
+      sLang: "系统语言", sCurr: "默认货币", sTax: "税率 (%)", sDark: "深色模式", sReset: "重置所有数据",
+      closed: "收银台已关闭", openReg: "打开收银台开始销售", inStock: "库存"
+    },
+    MS: { 
+      pos: "Jualan", dash: "Papan", inv: "Inventori", rep: "Laporan", cust: "Pelanggan", sup: "Pembekal", set: "Tetapan", 
+      search: "Cari / Kod Bar...", open: "Buka Shift", close: "Tutup Shift", 
+      cart: "Troli Semasa", clear: "Kosongkan", sub: "Subjumlah", tax: "Cukai", dist: "Diskaun", total: "Jumlah", pay: "Bayar", 
+      cash: "Tunai", card: "Kad", wallet: "Dompet", print: "Cetak Resit", 
+      add: "Tambah Produk", pName: "Nama Produk", pPrice: "Harga", pStock: "Stok", pCode: "Kod Bar", act: "Tindakan", del: "Padam",
+      sLang: "Bahasa Sistem", sCurr: "Mata Wang", sTax: "Kadar Cukai (%)", sDark: "Mod Gelap", sReset: "Tetapkan Semula",
+      closed: "Daftar Ditutup", openReg: "Buka daftar untuk mula", inStock: "Dalam Stok"
+    }
   };
   const t = dict[lang];
-  const categories = ["All", "Coffee", "Meals", "Beverage"];
 
   // --- Initialization (Local Storage) ---
   useEffect(() => {
-    const savedProducts = localStorage.getItem("pos_prods_v2");
+    const savedLang = localStorage.getItem("pos_lang");
+    if (savedLang) setLang(savedLang as Lang);
+
+    const savedCurr = localStorage.getItem("pos_curr");
+    if (savedCurr) setCurrency(savedCurr);
+
+    const savedProducts = localStorage.getItem("pos_products");
     if (savedProducts) setProducts(JSON.parse(savedProducts));
-    else setProducts([
-      { id: "P1", name: "Premium Espresso", price: 3.5, category: "Coffee", stock: 100, barcode: "111", image: "https://images.unsplash.com/photo-1510591509098-f4fdc6d0ff04?w=300&q=80" },
-      { id: "P2", name: "Avocado Toast", price: 6.5, category: "Meals", stock: 50, barcode: "222", image: "https://images.unsplash.com/photo-1541519227354-08fa5d50c44d?w=300&q=80" }
-    ]);
-    const savedOrders = localStorage.getItem("pos_orders_v2");
+    else setProducts([{ id: "1001", name: "Premium Coffee", price: 3.5, category: "Coffee", stock: 100, barcode: "12345", image: "https://placehold.co/100" }]);
+    
+    const savedOrders = localStorage.getItem("pos_orders");
     if (savedOrders) setOrders(JSON.parse(savedOrders));
+
     setIsLoaded(true);
   }, []);
 
+  // Save changes to LocalStorage
   useEffect(() => {
     if (isLoaded) {
-      localStorage.setItem("pos_prods_v2", JSON.stringify(products));
-      localStorage.setItem("pos_orders_v2", JSON.stringify(orders));
+      localStorage.setItem("pos_lang", lang);
+      localStorage.setItem("pos_curr", currency);
+      localStorage.setItem("pos_products", JSON.stringify(products));
+      localStorage.setItem("pos_orders", JSON.stringify(orders));
     }
-  }, [products, orders, isLoaded]);
+  }, [lang, currency, products, orders, isLoaded]);
+
 
   // --- Logic ---
   const getPrice = (priceUSD: number) => {
@@ -91,7 +122,10 @@ export default function UltimatePOS() {
   const handleBarcodeScan = (e: any) => {
     if (e.key === 'Enter' && searchQuery) {
       const product = products.find(p => p.barcode === searchQuery || p.name.toLowerCase() === searchQuery.toLowerCase());
-      if (product) { addToCart(product); setSearchQuery(""); }
+      if (product) {
+        addToCart(product);
+        setSearchQuery(""); 
+      }
     }
   };
 
@@ -100,15 +134,11 @@ export default function UltimatePOS() {
     setCart(prev => {
       const exist = prev.find(item => item.id === product.id);
       if (exist) {
-        if (exist.qty >= product.stock) return prev;
+        if (exist.qty >= product.stock) { alert("Max stock reached!"); return prev; }
         return prev.map(item => item.id === product.id ? { ...item, qty: item.qty + 1 } : item);
       }
       return [...prev, { ...product, qty: 1 }];
     });
-  };
-
-  const updateQty = (id: string, delta: number) => {
-    setCart(prev => prev.map(item => item.id === id ? { ...item, qty: item.qty + delta } : item).filter(item => item.qty > 0));
   };
 
   const subTotalUSD = cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
@@ -117,54 +147,34 @@ export default function UltimatePOS() {
   const grandTotalUSD = subTotalUSD + taxAmountUSD - discountUSD;
 
   const handlePay = (method: string) => {
-    // 1. Deduct Stock
     const updatedProducts = products.map(p => {
       const cartItem = cart.find(c => c.id === p.id);
       return cartItem ? { ...p, stock: p.stock - cartItem.qty } : p;
     });
     setProducts(updatedProducts);
 
-    // 2. Free up Table if selected
-    if (selectedTable) {
-      setTables(tables.map(tb => tb.id === selectedTable ? { ...tb, status: "Available", bill: 0 } : tb));
-      setSelectedTable(null);
-    }
-
-    // 3. Update Shift & Orders
-    setShift(prev => ({
-      ...prev, gross: prev.gross + subTotalUSD, tax: prev.tax + taxAmountUSD, discount: prev.discount + discountUSD, net: prev.net + grandTotalUSD, orders: prev.orders + 1,
-      cash: method === "Cash" ? prev.cash + grandTotalUSD : prev.cash,
-      card: method === "Card" ? prev.card + grandTotalUSD : prev.card,
-      wallet: method === "Wallet" ? prev.wallet + grandTotalUSD : prev.wallet,
-    }));
-
-    const newOrder = { id: "INV" + Date.now(), time: new Date().toLocaleString(), total: grandTotalUSD, method, items: cart, table: selectedTable ? `T-${selectedTable}` : "Walk-in" };
+    const newOrder = { id: "INV" + Date.now(), time: new Date().toLocaleString(), total: grandTotalUSD, method, items: cart };
     setOrders([newOrder, ...orders]);
     setLastReceipt(newOrder);
 
+    alert(`✅ Payment Success!\nOrder: ${newOrder.id}`);
     setCart([]); setDiscountVal(0);
   };
 
-  const handleAddProduct = () => {
-    if (newProd.name && newProd.price) {
-      setProducts([...products, { id: "P"+Date.now(), name: newProd.name, price: parseFloat(newProd.price)/rates[currency], stock: parseInt(newProd.stock||"0"), barcode: newProd.barcode, category: newProd.cat, image: newProd.image || "https://placehold.co/300x300?text=No+Image" }]);
-      setNewProd({ name: "", price: "", cat: "Meals", stock: "50", barcode: "", image: "" });
-    }
-  };
-
-  if (!isLoaded) return <div className="flex h-screen items-center justify-center font-bold">Loading POS...</div>;
+  if (!isLoaded) return <div>Loading...</div>;
 
   return (
-    <div className={`${isDarkMode ? "dark" : ""} select-none`}>
+    <div className={isDarkMode ? "dark" : ""}>
       
-      {/* ==================== PRINT RECEIPT ==================== */}
+      {/* ========================================== */}
+      {/* HIDDEN PRINT RECEIPT TEMPLATE */}
+      {/* ========================================== */}
       <div className="hidden print:block p-8 text-black bg-white w-full h-full font-mono">
         {lastReceipt && (
           <div className="max-w-xs mx-auto text-sm">
             <h2 className="text-center font-black text-2xl mb-1">GLOBAL POS</h2>
-            <p className="text-center text-xs mb-4">World Class System</p>
-            <p className="text-xs mb-1">Receipt: {lastReceipt.id}</p>
-            <p className="text-xs mb-1">Table: {lastReceipt.table}</p>
+            <p className="text-center text-xs mb-4">123 Business Street, Tech City</p>
+            <p className="text-xs mb-2">Receipt: {lastReceipt.id}</p>
             <p className="text-xs mb-4">Date: {lastReceipt.time}</p>
             <div className="border-t border-b border-dashed border-black py-2 mb-2">
               {lastReceipt.items.map((item: any) => (
@@ -174,14 +184,19 @@ export default function UltimatePOS() {
                 </div>
               ))}
             </div>
-            <div className="flex justify-between font-bold text-lg"><span>TOTAL</span><span>{symbols[currency]}{getPrice(lastReceipt.total)}</span></div>
-            <p className="text-xs mt-1">Paid via: {lastReceipt.method}</p>
-            <p className="text-center mt-6">Thank you!</p>
+            <div className="flex justify-between font-bold text-lg">
+              <span>{t.total}</span>
+              <span>{symbols[currency]}{getPrice(lastReceipt.total)}</span>
+            </div>
+            <p className="text-xs mt-1">Method: {lastReceipt.method}</p>
+            <p className="text-center mt-6">Thank you for your purchase!</p>
           </div>
         )}
       </div>
 
-      {/* ==================== MAIN UI ==================== */}
+      {/* ========================================== */}
+      {/* MAIN APP */}
+      {/* ========================================== */}
       <div className="flex h-screen bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white print:hidden transition-colors">
         
         {/* --- SIDEBAR --- */}
@@ -190,40 +205,41 @@ export default function UltimatePOS() {
           <nav className="flex-1 flex flex-col gap-2 w-full">
             {[
               { id: "POS", icon: "🛒", label: t.pos, reqAdmin: false },
-              { id: "TABLES", icon: "🪑", label: t.tables, reqAdmin: false },
               { id: "DASHBOARD", icon: "📊", label: t.dash, reqAdmin: true },
               { id: "INVENTORY", icon: "📦", label: t.inv, reqAdmin: true },
-              { id: "REPORTS", icon: "🧾", label: t.rep, reqAdmin: true },
+              { id: "ORDERS", icon: "🧾", label: t.rep, reqAdmin: true },
+              { id: "CUSTOMERS", icon: "👥", label: t.cust, reqAdmin: false },
+              { id: "SUPPLIERS", icon: "🚚", label: t.sup, reqAdmin: true },
               { id: "SETTINGS", icon: "⚙️", label: t.set, reqAdmin: true }
             ].map(tab => {
-              if (tab.reqAdmin && role !== "Admin") return null;
+              if (tab.reqAdmin && role !== "Admin") return null; 
               return (
                 <button key={tab.id} onClick={() => setActiveTab(tab.id as Tab)}
                   className={`flex flex-col items-center justify-center w-full py-3 border-r-4 ${activeTab === tab.id ? "text-indigo-600 dark:text-indigo-400 border-indigo-600 bg-indigo-50 dark:bg-slate-800" : "border-transparent opacity-60 hover:opacity-100"}`}>
                   <span className="text-2xl mb-1">{tab.icon}</span>
-                  <span className="text-[10px] uppercase font-bold">{tab.label}</span>
+                  <span className="text-[9px] uppercase font-bold">{tab.label}</span>
                 </button>
               )
             })}
           </nav>
         </aside>
 
-        {/* --- CONTENT --- */}
-        <main className="flex-1 flex flex-col min-w-0 relative">
+        {/* --- MAIN CONTENT --- */}
+        <main className="flex-1 flex flex-col min-w-0">
           
           {/* Header */}
           <header className="h-16 bg-white dark:bg-slate-950 border-b dark:border-slate-800 px-4 flex items-center justify-between shrink-0">
             <div className="flex gap-4 items-center">
-              <select className="bg-slate-100 dark:bg-slate-800 text-sm font-bold p-2 rounded-lg outline-none" value={role} onChange={e=>setRole(e.target.value as Role)}>
-                <option value="Admin">👑 {t.admin}</option><option value="Cashier">👤 {t.cashier}</option>
+              <select className="bg-slate-100 dark:bg-slate-800 text-xs font-bold p-2 rounded-lg outline-none" value={role} onChange={e=>setRole(e.target.value as Role)}>
+                <option value="Admin">👑 Admin</option><option value="Cashier">👤 Cashier</option>
               </select>
             </div>
             <div className="flex gap-4 items-center w-1/2">
-              <input type="text" placeholder={t.search} className="bg-slate-100 dark:bg-slate-800 px-4 py-2 rounded-full text-sm w-full outline-none focus:ring-2 focus:ring-indigo-500" 
+              <input type="text" placeholder={t.search} className="bg-slate-100 dark:bg-slate-800 px-4 py-2 rounded-full text-sm w-full outline-none" 
                      value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} onKeyDown={handleBarcodeScan} />
             </div>
             <div className="flex gap-2">
-              <button onClick={() => setIsShiftOpen(!isShiftOpen)} className={`px-4 py-2 rounded-full text-sm font-bold shadow-sm ${isShiftOpen ? "bg-emerald-100 text-emerald-700" : "bg-rose-100 text-rose-700"}`}>
+              <button onClick={() => setIsShiftOpen(!isShiftOpen)} className={`px-4 py-2 rounded-full text-xs font-bold ${isShiftOpen ? "bg-emerald-100 text-emerald-700" : "bg-rose-100 text-rose-700"}`}>
                 {isShiftOpen ? t.close : t.open}
               </button>
             </div>
@@ -235,183 +251,144 @@ export default function UltimatePOS() {
             {activeTab === "POS" && (
               !isShiftOpen ? (
                 <div className="m-auto mt-20 text-center p-10 bg-white dark:bg-slate-800 rounded-3xl max-w-sm shadow-xl">
-                  <div className="text-6xl mb-4">🔐</div><h2 className="text-2xl font-bold mb-4">{t.regClosed}</h2>
-                  <p className="text-slate-500 mb-6">{t.openRegAlert}</p>
-                  <button onClick={()=>setIsShiftOpen(true)} className="w-full bg-indigo-600 text-white py-3 rounded-xl font-bold">{t.open}</button>
+                  <div className="text-6xl mb-4">🔐</div><h2 className="text-xl font-bold mb-4">{t.closed}</h2>
+                  <button onClick={()=>setIsShiftOpen(true)} className="w-full bg-indigo-600 text-white py-3 rounded-xl font-bold">{t.openReg}</button>
                 </div>
               ) : (
                 <div className="flex gap-6 h-full">
                   <div className="flex-1 flex flex-col">
                     <div className="flex gap-2 overflow-x-auto pb-4 shrink-0">
-                      {categories.map(cat => (
-                        <button key={cat} onClick={() => setActiveCategory(cat)} className={`px-5 py-2.5 rounded-full text-sm font-bold border ${activeCategory === cat ? "bg-slate-900 dark:bg-indigo-600 text-white border-transparent shadow-md" : "bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300"}`}>{cat === "All" ? "All" : cat}</button>
+                      {["All", ...categories].map(cat => (
+                        <button key={cat} onClick={() => setActiveCategory(cat)} className={`px-4 py-2 rounded-full text-sm font-bold border ${activeCategory === cat ? "bg-slate-900 dark:bg-indigo-600 text-white" : "bg-white dark:bg-slate-800"}`}>
+                          {cat === "All" ? (lang === "MM" ? "အားလုံး" : "All") : cat}
+                        </button>
                       ))}
                     </div>
-                    <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 overflow-y-auto pb-20 pr-2">
+                    <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 overflow-y-auto pb-20">
                       {filteredProducts.map(p => (
-                        <button key={p.id} onClick={() => addToCart(p)} className="bg-white dark:bg-slate-800 rounded-2xl border dark:border-slate-700 text-left hover:shadow-xl hover:border-indigo-500 transition-all flex flex-col h-48 overflow-hidden group">
-                          <div className="h-28 w-full bg-slate-200 relative overflow-hidden">
-                            <img src={p.image} className="w-full h-full object-cover group-hover:scale-110 transition-transform" />
-                            <div className="absolute top-2 right-2 bg-black/70 text-white text-[10px] font-bold px-2 py-0.5 rounded">{p.stock} Left</div>
+                        <button key={p.id} onClick={() => addToCart(p)} className="bg-white dark:bg-slate-800 p-3 rounded-xl border dark:border-slate-700 text-left hover:border-indigo-500 shadow-sm flex flex-col justify-between h-36">
+                          <div>
+                            <p className="text-[10px] font-bold text-slate-400 bg-slate-100 dark:bg-slate-700 w-fit px-2 py-0.5 rounded">{p.stock} {t.inStock}</p>
+                            <h3 className="font-bold text-sm mt-2">{p.name}</h3>
                           </div>
-                          <div className="p-3 flex flex-col justify-between flex-1">
-                            <h3 className="font-bold text-sm leading-tight">{p.name}</h3>
-                            <p className="text-indigo-600 dark:text-indigo-400 font-black">{symbols[currency]}{getPrice(p.price)}</p>
-                          </div>
+                          <p className="text-indigo-600 dark:text-indigo-400 font-black text-lg">{symbols[currency]}{getPrice(p.price)}</p>
                         </button>
                       ))}
                     </div>
                   </div>
 
                   {/* Cart Sidebar */}
-                  <div className="w-[350px] bg-white dark:bg-slate-950 border dark:border-slate-800 rounded-3xl flex flex-col shadow-2xl shrink-0 overflow-hidden">
-                    <div className="p-4 border-b dark:border-slate-800 bg-slate-50 dark:bg-slate-900 flex justify-between items-center">
-                      <div>
-                        <p className="text-xs font-bold text-slate-400 uppercase">{selectedTable ? t.tables : "Customer"}</p>
-                        <p className="font-bold text-indigo-600">{selectedTable ? `Table - ${selectedTable}` : t.walkin}</p>
-                      </div>
-                      <button onClick={()=>{setCart([]); setSelectedTable(null);}} className="text-rose-500 font-bold text-xs bg-rose-50 dark:bg-rose-900/30 px-3 py-1.5 rounded-lg">{t.clear}</button>
-                    </div>
-                    <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                  <div className="w-80 bg-white dark:bg-slate-950 border dark:border-slate-800 rounded-2xl flex flex-col shadow-lg shrink-0">
+                    <div className="p-4 border-b dark:border-slate-800 font-bold flex justify-between">{t.cart} <span className="bg-indigo-100 text-indigo-700 px-2 rounded-full text-xs">{cart.length}</span></div>
+                    <div className="flex-1 overflow-y-auto p-4 space-y-3">
                       {cart.map(c => (
-                        <div key={c.id} className="text-sm border-b dark:border-slate-800 pb-3 border-dashed">
-                          <div className="flex justify-between font-bold mb-2"><span className="pr-2 leading-tight">{c.name}</span><span className="text-indigo-600">{symbols[currency]}{getPrice(c.price * c.qty)}</span></div>
-                          <div className="flex justify-between items-center">
-                            <span className="text-xs text-slate-400">{symbols[currency]}{getPrice(c.price)} / ea</span>
-                            <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 rounded-lg p-1">
-                              <button onClick={()=>updateQty(c.id, -1)} className="w-6 h-6 flex items-center justify-center bg-white dark:bg-slate-700 rounded shadow-sm font-bold">-</button>
-                              <span className="w-6 text-center font-bold">{c.qty}</span>
-                              <button onClick={()=>updateQty(c.id, 1)} className="w-6 h-6 flex items-center justify-center bg-white dark:bg-slate-700 rounded shadow-sm font-bold">+</button>
-                            </div>
+                        <div key={c.id} className="text-sm border-b dark:border-slate-800 pb-2">
+                          <div className="flex justify-between font-bold mb-1"><span>{c.name}</span><span>{symbols[currency]}{getPrice(c.price * c.qty)}</span></div>
+                          <div className="flex items-center gap-2">
+                            <button onClick={()=>updateQty(c.id, -1)} className="bg-slate-100 dark:bg-slate-800 px-2 rounded font-bold">-</button>
+                            <span>{c.qty}</span>
+                            <button onClick={()=>updateQty(c.id, 1)} className="bg-slate-100 dark:bg-slate-800 px-2 rounded font-bold">+</button>
                           </div>
                         </div>
                       ))}
                     </div>
-                    <div className="p-5 bg-slate-50 dark:bg-slate-900 border-t dark:border-slate-800">
-                      <div className="flex justify-between text-sm font-bold mb-2 text-slate-500"><span>{t.sub}</span><span>{symbols[currency]}{getPrice(subTotalUSD)}</span></div>
-                      <div className="flex justify-between text-sm font-bold mb-2 text-slate-500"><span>{t.tax} ({taxRate}%)</span><span>{symbols[currency]}{getPrice(taxAmountUSD)}</span></div>
-                      <div className="flex justify-between text-sm font-bold mb-4 text-emerald-500 cursor-pointer" onClick={() => setDiscountVal(discountVal === 0 ? 5*rates[currency] : 0)}><span>{t.disc}</span><span>-{symbols[currency]}{currency === "MMK" ? discountVal.toLocaleString() : discountUSD.toFixed(2)}</span></div>
-                      <div className="flex justify-between text-2xl font-black mb-4 pt-4 border-t dark:border-slate-700"><span>{t.total}</span><span className="text-indigo-600">{symbols[currency]}{getPrice(grandTotalUSD)}</span></div>
+                    <div className="p-4 bg-slate-50 dark:bg-slate-900 rounded-b-2xl border-t dark:border-slate-800">
+                      <div className="flex justify-between text-xs font-bold mb-1"><span>{t.sub}</span><span>{symbols[currency]}{getPrice(subTotalUSD)}</span></div>
+                      <div className="flex justify-between text-xs font-bold mb-1"><span>{t.tax}</span><span>{symbols[currency]}{getPrice(taxAmountUSD)}</span></div>
+                      <div className="flex justify-between text-2xl font-black mb-4 mt-2 pt-2 border-t text-indigo-600 dark:text-indigo-400"><span>{t.total}</span><span>{symbols[currency]}{getPrice(grandTotalUSD)}</span></div>
                       
-                      <div className="grid grid-cols-3 gap-2 mb-3">
-                        <button onClick={()=>handlePay("Cash")} disabled={!cart.length} className="bg-white dark:bg-slate-800 border dark:border-slate-700 p-3 rounded-xl text-xs font-bold shadow-sm hover:border-indigo-500 disabled:opacity-50 flex flex-col items-center"><span className="text-lg mb-1">💵</span>{t.cash}</button>
-                        <button onClick={()=>handlePay("Card")} disabled={!cart.length} className="bg-white dark:bg-slate-800 border dark:border-slate-700 p-3 rounded-xl text-xs font-bold shadow-sm hover:border-indigo-500 disabled:opacity-50 flex flex-col items-center"><span className="text-lg mb-1">💳</span>{t.card}</button>
-                        <button onClick={()=>handlePay("Wallet")} disabled={!cart.length} className="bg-white dark:bg-slate-800 border dark:border-slate-700 p-3 rounded-xl text-xs font-bold shadow-sm hover:border-indigo-500 disabled:opacity-50 flex flex-col items-center"><span className="text-lg mb-1">📱</span>{t.wallet}</button>
+                      <div className="grid grid-cols-3 gap-2 mb-2">
+                        <button onClick={()=>handlePay(t.cash)} disabled={!cart.length} className="bg-white dark:bg-slate-800 border dark:border-slate-700 p-2 rounded-lg text-xs font-bold shadow-sm">💵<br/>{t.cash}</button>
+                        <button onClick={()=>handlePay(t.card)} disabled={!cart.length} className="bg-white dark:bg-slate-800 border dark:border-slate-700 p-2 rounded-lg text-xs font-bold shadow-sm">💳<br/>{t.card}</button>
+                        <button onClick={()=>handlePay(t.wallet)} disabled={!cart.length} className="bg-white dark:bg-slate-800 border dark:border-slate-700 p-2 rounded-lg text-xs font-bold shadow-sm">📱<br/>{t.wallet}</button>
                       </div>
-                      <button onClick={handlePrint} disabled={!lastReceipt} className="w-full bg-slate-800 dark:bg-slate-700 text-white py-3 rounded-xl text-sm font-bold disabled:opacity-50 shadow-md">🖨️ {t.print}</button>
+                      {lastReceipt && (
+                        <button onClick={handlePrint} className="w-full bg-slate-800 dark:bg-slate-700 text-white py-3 rounded-lg text-xs font-bold mt-2 shadow-md">🖨️ {t.print}</button>
+                      )}
                     </div>
                   </div>
                 </div>
               )
             )}
 
-            {/* 2. DINE-IN TABLES View */}
-            {activeTab === "TABLES" && (
-              <div className="max-w-5xl mx-auto">
-                <h2 className="text-3xl font-black mb-8">{t.selTable}</h2>
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                  {tables.map(tb => (
-                    <button key={tb.id} onClick={() => { setSelectedTable(tb.id); setActiveTab("POS"); }} 
-                      className={`relative p-6 rounded-3xl border-2 text-center transition-all shadow-sm hover:shadow-lg hover:-translate-y-1 ${tb.status === "Occupied" ? "bg-rose-50 dark:bg-rose-900/20 border-rose-200 dark:border-rose-800" : "bg-white dark:bg-slate-800 border-emerald-200 dark:border-emerald-800"}`}>
-                      <div className="text-4xl mb-4">🪑</div>
-                      <h3 className="text-2xl font-black mb-2">{tb.name}</h3>
-                      <span className={`px-3 py-1 rounded-full text-xs font-bold ${tb.status === "Occupied" ? "bg-rose-200 text-rose-800" : "bg-emerald-100 text-emerald-700"}`}>
-                        {tb.status === "Occupied" ? t.occ : t.avail}
-                      </span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* 3. INVENTORY View */}
+            {/* 2. INVENTORY View */}
             {activeTab === "INVENTORY" && role === "Admin" && (
-              <div className="max-w-6xl mx-auto">
-                <h2 className="text-3xl font-black mb-6">{t.inv}</h2>
-                <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border dark:border-slate-700 mb-8">
-                  <h3 className="font-bold mb-4">➕ {t.add}</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                    <input type="text" placeholder={t.name} className="border dark:border-slate-600 p-3 rounded-xl bg-slate-50 dark:bg-slate-900 text-sm font-medium outline-none" value={newProd.name} onChange={e=>setNewProd({...newProd, name: e.target.value})} />
-                    <input type="number" placeholder={t.price} className="border dark:border-slate-600 p-3 rounded-xl bg-slate-50 dark:bg-slate-900 text-sm font-medium outline-none" value={newProd.price} onChange={e=>setNewProd({...newProd, price: e.target.value})} />
-                    <select className="border dark:border-slate-600 p-3 rounded-xl bg-slate-50 dark:bg-slate-900 text-sm font-medium outline-none" value={newProd.cat} onChange={e=>setNewProd({...newProd, cat: e.target.value})}>
-                      {categories.filter(c=>c!=="All").map(c => <option key={c} value={c}>{c}</option>)}
-                    </select>
-                    <input type="number" placeholder={t.stock} className="border dark:border-slate-600 p-3 rounded-xl bg-slate-50 dark:bg-slate-900 text-sm font-medium outline-none" value={newProd.stock} onChange={e=>setNewProd({...newProd, stock: e.target.value})} />
-                    <input type="text" placeholder={t.barcode} className="border dark:border-slate-600 p-3 rounded-xl bg-slate-50 dark:bg-slate-900 text-sm font-medium outline-none" value={newProd.barcode} onChange={e=>setNewProd({...newProd, barcode: e.target.value})} />
-                    
-                    {/* Added Image URL Input here */}
-                    <input type="text" placeholder={t.image} className="border dark:border-slate-600 p-3 rounded-xl bg-slate-50 dark:bg-slate-900 text-sm font-medium outline-none" value={newProd.image} onChange={e=>setNewProd({...newProd, image: e.target.value})} />
-                  
-                  </div>
-                  <button onClick={handleAddProduct} className="bg-indigo-600 text-white px-8 py-3 rounded-xl font-bold hover:bg-indigo-700 shadow-md">{t.save}</button>
+              <div>
+                <h2 className="text-2xl font-bold mb-4">{t.inv}</h2>
+                <div className="bg-white dark:bg-slate-800 p-4 rounded-xl shadow-sm mb-6 flex gap-4">
+                  <input type="text" id="pName" placeholder={t.pName} className="border p-2 rounded text-sm w-full dark:bg-slate-700 dark:border-slate-600" />
+                  <input type="number" id="pPrice" placeholder={t.pPrice} className="border p-2 rounded text-sm w-full dark:bg-slate-700 dark:border-slate-600" />
+                  <input type="number" id="pStock" placeholder={t.pStock} className="border p-2 rounded text-sm w-full dark:bg-slate-700 dark:border-slate-600" />
+                  <input type="text" id="pBarcode" placeholder={t.pCode} className="border p-2 rounded text-sm w-full dark:bg-slate-700 dark:border-slate-600" />
+                  <button onClick={() => {
+                    const n = (document.getElementById("pName") as HTMLInputElement).value;
+                    const p = (document.getElementById("pPrice") as HTMLInputElement).value;
+                    const s = (document.getElementById("pStock") as HTMLInputElement).value;
+                    const b = (document.getElementById("pBarcode") as HTMLInputElement).value;
+                    if(n && p) setProducts([...products, { id: "P"+Date.now(), name: n, price: parseFloat(p)/rates[currency], stock: parseInt(s||"0"), barcode: b, category: "Meals", image: "" }]);
+                  }} className="bg-indigo-600 text-white px-4 py-2 rounded font-bold whitespace-nowrap">{t.add}</button>
                 </div>
-                
-                <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border dark:border-slate-700 overflow-hidden">
-                  <table className="w-full text-left">
-                    <thead className="bg-slate-50 dark:bg-slate-900 border-b dark:border-slate-700 text-xs uppercase font-bold text-slate-500">
-                      <tr><th className="p-4">Image</th><th className="p-4">{t.name}</th><th className="p-4">{t.barcode}</th><th className="p-4">{t.stock}</th><th className="p-4">{t.price}</th><th className="p-4">Action</th></tr>
-                    </thead>
-                    <tbody className="text-sm divide-y dark:divide-slate-700">
-                      {products.map(p => (
-                        <tr key={p.id} className="hover:bg-slate-50 dark:hover:bg-slate-800">
-                          <td className="p-4"><img src={p.image} className="w-12 h-12 object-cover rounded-lg shadow-sm" alt="product" /></td>
-                          <td className="p-4 font-bold">{p.name}</td><td className="p-4 text-slate-400">{p.barcode}</td><td className="p-4 font-bold text-emerald-600">{p.stock}</td><td className="p-4 font-black">{symbols[currency]}{getPrice(p.price)}</td>
-                          <td className="p-4"><button onClick={() => setProducts(products.filter(x=>x.id!==p.id))} className="text-rose-500 font-bold bg-rose-50 dark:bg-rose-900/30 px-3 py-1 rounded">{t.del}</button></td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            )}
-
-            {/* 4. SETTINGS View */}
-            {activeTab === "SETTINGS" && role === "Admin" && (
-              <div className="max-w-4xl mx-auto space-y-8">
-                <h2 className="text-3xl font-black">{t.set}</h2>
-                <div className="bg-white dark:bg-slate-800 p-8 rounded-3xl shadow-sm border dark:border-slate-700 grid grid-cols-1 md:grid-cols-2 gap-8">
-                  <div>
-                    <label className="block text-sm font-bold mb-2 text-slate-500">{t.lang || "Language"}</label>
-                    <select className="w-full border dark:border-slate-600 p-4 rounded-xl bg-slate-50 dark:bg-slate-900 font-bold outline-none" value={lang} onChange={(e) => setLang(e.target.value as Lang)}>
-                      <option value="EN">🇺🇸 English</option><option value="MM">🇲🇲 Myanmar (မြန်မာ)</option><option value="ZH">🇨🇳 Chinese (中文)</option><option value="MS">🇲🇾 Malay (Melayu)</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-bold mb-2 text-slate-500">Currency</label>
-                    <select className="w-full border dark:border-slate-600 p-4 rounded-xl bg-slate-50 dark:bg-slate-900 font-bold outline-none" value={currency} onChange={(e) => setCurrency(e.target.value)}>
-                      <option value="USD">USD ($)</option><option value="MMK">MMK (Ks)</option><option value="MYR">MYR (RM)</option><option value="THB">THB (฿)</option><option value="SGD">SGD (S$)</option><option value="CNY">CNY (¥)</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-bold mb-2 text-slate-500">{t.tax || "Tax Rate"}</label>
-                    <input type="number" className="w-full border dark:border-slate-600 p-4 rounded-xl bg-slate-50 dark:bg-slate-900 font-bold outline-none" value={taxRate} onChange={(e) => setTaxRate(Number(e.target.value))} />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-bold mb-2 text-slate-500">Theme</label>
-                    <button onClick={()=>setIsDarkMode(!isDarkMode)} className={`w-full py-4 rounded-xl font-bold transition-all shadow-sm ${isDarkMode ? "bg-indigo-600 text-white" : "bg-slate-200 text-slate-700"}`}>{isDarkMode ? "Dark Mode ON 🌙" : "Light Mode ON ☀️"}</button>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Other Placeholder Modules */}
-            {["DASHBOARD", "REPORTS"].includes(activeTab) && role === "Admin" && (
-              <div className="max-w-6xl mx-auto">
-                <h2 className="text-3xl font-black mb-6">{t[activeTab.toLowerCase().substring(0,3) as keyof typeof t] || activeTab}</h2>
-                <div className="bg-white dark:bg-slate-800 p-8 rounded-3xl shadow-sm border dark:border-slate-700">
-                  <h3 className="font-bold text-lg mb-4">Transaction Logs</h3>
-                  <div className="space-y-3">
-                    {orders.length === 0 ? <p className="text-slate-400">No transactions recorded.</p> : 
-                      orders.map((o:any) => (
-                      <div key={o.id} className="p-4 border dark:border-slate-700 rounded-xl flex justify-between bg-slate-50 dark:bg-slate-900 shadow-sm">
-                        <div><p className="font-bold text-indigo-600">{o.id}</p><p className="text-xs text-slate-500">{o.time} • {o.table}</p></div>
-                        <div className="text-right"><p className="font-black text-lg">{symbols[currency]}{getPrice(o.total)}</p><p className="text-xs font-bold text-emerald-600 bg-emerald-100 dark:bg-emerald-900/30 px-2 py-0.5 rounded uppercase inline-block">{o.method}</p></div>
-                      </div>
+                <table className="w-full text-left bg-white dark:bg-slate-800 rounded-xl shadow-sm">
+                  <thead className="bg-slate-50 dark:bg-slate-900 text-xs uppercase"><tr><th className="p-3">{t.pName}</th><th className="p-3">{t.pCode}</th><th className="p-3">{t.pStock}</th><th className="p-3">{t.pPrice}</th><th className="p-3">{t.act}</th></tr></thead>
+                  <tbody className="text-sm divide-y dark:divide-slate-700">
+                    {products.map(p => (
+                      <tr key={p.id}>
+                        <td className="p-3 font-bold">{p.name}</td><td className="p-3 text-slate-400">{p.barcode}</td><td className="p-3 font-bold text-emerald-500">{p.stock}</td><td className="p-3 font-bold">{symbols[currency]}{getPrice(p.price)}</td>
+                        <td className="p-3"><button onClick={() => setProducts(products.filter(x=>x.id!==p.id))} className="text-rose-500 font-bold">{t.del}</button></td>
+                      </tr>
                     ))}
-                  </div>
-                </div>
+                  </tbody>
+                </table>
               </div>
             )}
+
+            {/* 3. SETTINGS View */}
+            {activeTab === "SETTINGS" && role === "Admin" && (
+              <div className="max-w-3xl space-y-6">
+                <h2 className="text-2xl font-bold">{t.set}</h2>
+                <div className="bg-white dark:bg-slate-800 p-8 rounded-xl shadow-sm grid grid-cols-2 gap-8">
+                  <div>
+                    <label className="block text-sm font-bold mb-2 text-slate-500 dark:text-slate-400">{t.sLang}</label>
+                    <select className="w-full border p-3 rounded-lg dark:bg-slate-900 dark:border-slate-700 font-bold" value={lang} onChange={(e) => setLang(e.target.value as Lang)}>
+                      <option value="EN">🇺🇸 English</option>
+                      <option value="MM">🇲🇲 Myanmar (မြန်မာ)</option>
+                      <option value="ZH">🇨🇳 Chinese (中文)</option>
+                      <option value="MS">🇲🇾 Malay (Melayu)</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-bold mb-2 text-slate-500 dark:text-slate-400">{t.sCurr}</label>
+                    <select className="w-full border p-3 rounded-lg dark:bg-slate-900 dark:border-slate-700 font-bold" value={currency} onChange={(e) => setCurrency(e.target.value)}>
+                      <option value="USD">🇺🇸 USD ($)</option><option value="MMK">🇲🇲 MMK (Ks)</option>
+                      <option value="MYR">🇲🇾 MYR (RM)</option><option value="THB">🇹🇭 THB (฿)</option>
+                      <option value="SGD">🇸🇬 SGD (S$)</option><option value="CNY">🇨🇳 CNY (¥)</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-bold mb-2 text-slate-500 dark:text-slate-400">{t.sTax}</label>
+                    <input type="number" className="w-full border p-3 rounded-lg dark:bg-slate-900 dark:border-slate-700 font-bold" value={taxRate} onChange={(e) => setTaxRate(Number(e.target.value))} />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-bold mb-2 text-slate-500 dark:text-slate-400">{t.sDark}</label>
+                    <button onClick={()=>setIsDarkMode(!isDarkMode)} className={`w-full py-3 rounded-lg font-bold transition-colors ${isDarkMode ? "bg-indigo-600 text-white" : "bg-slate-200 text-slate-700"}`}>
+                      {isDarkMode ? "🌙 ON" : "☀️ OFF"}
+                    </button>
+                  </div>
+                </div>
+                <button onClick={() => { localStorage.clear(); window.location.reload(); }} className="text-rose-500 font-bold text-sm bg-rose-50 dark:bg-rose-900/20 px-4 py-2 rounded-lg">⚠️ {t.sReset}</button>
+              </div>
+            )}
+
+            {/* DASHBOARD / ORDERS Placeholder */}
+            {["DASHBOARD", "ORDERS", "CUSTOMERS", "SUPPLIERS"].includes(activeTab) && (
+              <div className="bg-white dark:bg-slate-800 p-6 rounded-xl shadow-sm">
+                <h2 className="text-2xl font-bold mb-4">{t[activeTab.toLowerCase().substring(0,4) as keyof typeof t] || activeTab}</h2>
+                {activeTab === "ORDERS" && (
+                  <ul className="mt-4 space-y-2">{orders.map((o:any) => <li key={o.id} className="p-3 border dark:border-slate-700 rounded text-sm flex justify-between items-center"><span className="font-bold text-indigo-500">{o.id} ({o.method})</span><span>{o.time}</span><span className="font-black text-lg">{symbols[currency]}{getPrice(o.total)}</span></li>)}</ul>
+                )}
+              </div>
+            )}
+
           </div>
         </main>
       </div>
