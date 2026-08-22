@@ -1,64 +1,67 @@
-import Image from "next/image";
-
 export default function Home() {
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
+    <div className="bg-gray-100 font-sans min-h-screen">
+      {/* Header */}
+      <header className="bg-blue-600 text-white p-4 shadow-md flex justify-between items-center">
+          <h1 className="text-2xl font-bold">Global POS</h1>
+          <p className="text-sm">By <span className="font-semibold">njangzaumun</span></p>
+      </header>
+
+      {/* Main POS Layout */}
+      <main className="flex flex-col md:flex-row p-4 gap-4 h-[calc(100vh-80px)]">
+          
+          {/* Products Section (Left) */}
+          <section className="w-full md:w-2/3 bg-white p-4 rounded-lg shadow overflow-y-auto">
+              <h2 className="text-xl font-semibold mb-4 border-b pb-2">Products</h2>
+              <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
+                  
+                  {/* Product Card 1 */}
+                  <div className="border rounded p-4 text-center hover:shadow-lg transition cursor-pointer bg-gray-50">
+                      <div className="h-24 bg-gray-300 rounded mb-2 flex items-center justify-center text-gray-500">Image</div>
+                      <h3 className="font-bold">Item 1</h3>
+                      <p className="text-blue-600 font-semibold">$10.00</p>
+                  </div>
+
+                  {/* Product Card 2 */}
+                  <div className="border rounded p-4 text-center hover:shadow-lg transition cursor-pointer bg-gray-50">
+                      <div className="h-24 bg-gray-300 rounded mb-2 flex items-center justify-center text-gray-500">Image</div>
+                      <h3 className="font-bold">Item 2</h3>
+                      <p className="text-blue-600 font-semibold">$15.50</p>
+                  </div>
+
+                  {/* Product Card 3 */}
+                  <div className="border rounded p-4 text-center hover:shadow-lg transition cursor-pointer bg-gray-50">
+                      <div className="h-24 bg-gray-300 rounded mb-2 flex items-center justify-center text-gray-500">Image</div>
+                      <h3 className="font-bold">Item 3</h3>
+                      <p className="text-blue-600 font-semibold">$8.00</p>
+                  </div>
+
+              </div>
+          </section>
+
+          {/* Cart / Order Summary Section (Right) */}
+          <section className="w-full md:w-1/3 bg-white p-4 rounded-lg shadow flex flex-col justify-between">
+              <div>
+                  <h2 className="text-xl font-semibold mb-4 border-b pb-2">Current Order</h2>
+                  
+                  {/* Empty Cart Message */}
+                  <div className="text-center text-gray-500 mt-10">
+                      <p>No items added yet.</p>
+                  </div>
+              </div>
+
+              {/* Total and Checkout */}
+              <div className="border-t pt-4 mt-4">
+                  <div className="flex justify-between text-lg font-bold mb-4">
+                      <span>Total:</span>
+                      <span>$0.00</span>
+                  </div>
+                  <button className="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-3 rounded shadow transition">
+                      Checkout
+                  </button>
+              </div>
+          </section>
+
       </main>
     </div>
   );
