@@ -3,7 +3,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import { initializeApp } from "firebase/app";
-import { getAuth, RecaptchaVerifier, signInWithPhoneNumber, signOut, onAuthStateChanged } from "firebase/auth";
+import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged } from "firebase/auth";
 import { getFirestore, collection, addDoc, onSnapshot, query, orderBy } from "firebase/firestore";
 
 // 🌟 FIREBASE INITIALIZATION (Your Config)
@@ -25,8 +25,9 @@ const db = getFirestore(app);
 const translations: any = {
   "English": { 
     pos: "Point of Sale", prod: "Products", shift: "Shift", rep: "Reports", set: "Settings",
-    phoneInput: "Phone Number", egPhone: "e.g. +95912345678", sendCode: "Send SMS Code",
-    enterOtp: "Enter 6-digit OTP", verifyOtp: "Verify & Sign In",
+    emailUser: "Email Address", egEmail: "e.g. admin@globalpos.com", pass: "Password", enterPass: "Enter password...", 
+    confirmPass: "Confirm Password", confirmPassHolder: "Confirm your password...",
+    loginBtn: "Sign In", registerBtn: "Create Cloud Account", noAccount: "Don't have an account?", regHere: "Register Here", hasAccount: "Already have an account?",
     shiftActive: "Shift Open", shiftClosed: "Shift Closed", allItems: "All Items", currentOrder: "Current Order",
     empty: "Cart is empty", subtotal: "Subtotal", tax: "Tax", total: "Total", pay: "Charge", payMeth: "Payment Method",
     cash: "Cash", ewallet: "E-Wallet", debit: "Debit Card", credit: "Credit Card", onlineDel: "Delivery",
@@ -39,8 +40,9 @@ const translations: any = {
   },
   "Burmese": { 
     pos: "အရောင်း", prod: "ကုန်ပစ္စည်း", shift: "ဆိုင်း", rep: "အစီရင်ခံစာ", set: "ဆက်တင်",
-    phoneInput: "ဖုန်းနံပါတ်", egPhone: "ဥပမာ - +95912345678", sendCode: "SMS Code တောင်းမည်",
-    enterOtp: "ဂဏန်း (၆) လုံး ထည့်ပါ", verifyOtp: "အတည်ပြုပြီး ဝင်မည်",
+    emailUser: "အီးမေးလ်", egEmail: "ဥပမာ - admin@globalpos.com", pass: "စကားဝှက်", enterPass: "စကားဝှက် ရိုက်ထည့်ပါ...", 
+    confirmPass: "စကားဝှက် အတည်ပြုပါ", confirmPassHolder: "စကားဝှက် ထပ်ရိုက်ပါ...",
+    loginBtn: "အကောင့်ဝင်မည်", registerBtn: "Cloud အကောင့်သစ် ဖွင့်ရန်", noAccount: "အကောင့် မရှိသေးဘူးလား?", regHere: "ဒီမှာ အကောင့်ဖွင့်ပါ", hasAccount: "အကောင့် ရှိပြီးသားလား?",
     shiftActive: "ဆိုင်းဖွင့်ထားသည်", shiftClosed: "ဆိုင်းပိတ်ထားသည်", allItems: "အားလုံး", currentOrder: "လက်ရှိ အော်ဒါ",
     empty: "ဘာမှမရွေးရသေးပါ", subtotal: "ကျသင့်ငွေ", tax: "အခွန်", total: "စုစုပေါင်း", pay: "ငွေရှင်းမည်", payMeth: "ငွေချေမည့်စနစ်",
     cash: "ငွေသား", ewallet: "အီးဝေါလက်", debit: "ဒက်ဘစ်ကတ်", credit: "ခရက်ဒစ်ကတ်", onlineDel: "Delivery",
@@ -62,11 +64,11 @@ export default function PremiumCloudPOS() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [currentUser, setCurrentUser] = useState(""); 
   
-  // 🌟 SMS AUTH STATES
-  const [phoneNumber, setPhoneNumber] = useState("");
-  const [otpCode, setOtpCode] = useState("");
-  const [authStep, setAuthStep] = useState("phone"); 
-  const [confirmationResult, setConfirmationResult] = useState<any>(null);
+  // 🌟 AUTH STATES
+  const [authMode, setAuthMode] = useState("login");
+  const [authUsername, setAuthUsername] = useState("");
+  const [authPassword, setAuthPassword] = useState("");
+  const [authConfirm, setAuthConfirm] = useState("");
   const [authLoading, setAuthLoading] = useState(false);
 
   const [activeModule, setActiveMenu] = useState("pos");
@@ -105,10 +107,11 @@ export default function PremiumCloudPOS() {
 
   useEffect(() => {
     setIsMounted(true);
+    // LISTEN TO FIREBASE AUTH STATE
     const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
       if (user) {
         setIsLoggedIn(true);
-        setCurrentUser(user.phoneNumber || "");
+        setCurrentUser(user.email || "");
         loadCloudData();
       } else {
         setIsLoggedIn(false);
@@ -132,44 +135,28 @@ export default function PremiumCloudPOS() {
   };
 
   const playBeep = () => { if (!prefAudio) return; try { const ctx = new (window.AudioContext || (window as any).webkitAudioContext)(); const osc = ctx.createOscillator(); osc.type="square"; osc.frequency.setValueAtTime(500, ctx.currentTime); osc.connect(ctx.destination); osc.start(); osc.stop(ctx.currentTime + 0.05); } catch(e) {} };
-  
-  const setupRecaptcha = () => {
-    if (!(window as any).recaptchaVerifier) {
-      (window as any).recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', { 'size': 'invisible' });
-    }
-  };
 
-  const handleSendOtp = async (e: any) => {
+  // 🌟 CLOUD AUTHENTICATION LOGIC
+  const handleAuth = async (e: any) => {
     e.preventDefault();
     setAuthLoading(true);
-    setupRecaptcha();
-    const appVerifier = (window as any).recaptchaVerifier;
     try {
-      const formattedPhone = phoneNumber.startsWith("+") ? phoneNumber : `+95${phoneNumber.replace(/^0+/, '')}`;
-      const confirmation = await signInWithPhoneNumber(auth, formattedPhone, appVerifier);
-      setConfirmationResult(confirmation);
-      setAuthStep("otp");
-      playBeep();
+      if (authMode === "login") {
+        await signInWithEmailAndPassword(auth, authUsername, authPassword);
+        playBeep();
+      } else {
+        if (authPassword !== authConfirm) { alert("Passwords do not match!"); setAuthLoading(false); return; }
+        await createUserWithEmailAndPassword(auth, authUsername, authPassword);
+        alert("Account Created Successfully! You are now logged in to the Cloud.");
+        playBeep();
+      }
     } catch (error: any) {
       alert("Error: " + error.message);
-      if((window as any).recaptchaVerifier) {
-        (window as any).recaptchaVerifier.render().then((widgetId: any) => { (window as any).grecaptcha.reset(widgetId); });
-      }
     }
     setAuthLoading(false);
   };
 
-  const handleVerifyOtp = async (e: any) => {
-    e.preventDefault();
-    setAuthLoading(true);
-    try {
-      await confirmationResult.confirm(otpCode);
-      playBeep();
-    } catch (error: any) { alert("Invalid Code!"); }
-    setAuthLoading(false);
-  };
-
-  const handleLogout = () => { if(confirm("Sign out?")) { signOut(auth); setAuthStep("phone"); setPhoneNumber(""); setOtpCode(""); } };
+  const handleLogout = () => { if(confirm("Sign out of Cloud?")) { signOut(auth); setAuthUsername(""); setAuthPassword(""); } };
   const navigate = (mod: string) => { setActiveMenu(mod); setIsMobileMenuOpen(false); playBeep(); };
 
   const handleAddTable = (e: any) => { e.preventDefault(); if (newTableName.trim() && !tables.includes(newTableName.trim())) { setTables([...tables, newTableName.trim()]); setNewTableName(""); playBeep(); } };
@@ -193,6 +180,7 @@ export default function PremiumCloudPOS() {
   };
 
   const handleOpenShift = () => { setShift({ isOpen: true, openingCash: Number(openInput) || 0, sales: 0, payIn: 0, payOut: 0, start: new Date().toLocaleString(), salesByMethod: INITIAL_SALES_BY_METHOD }); setOpenInput(""); playBeep(); };
+  
   const handleCloseShift = async () => { 
     const expected = shift.openingCash + shift.sales + shift.payIn - shift.payOut; 
     const diff = (Number(actualCash) || 0) - expected; 
@@ -227,40 +215,45 @@ export default function PremiumCloudPOS() {
   if (!isLoggedIn) {
     return (
       <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4 font-sans text-slate-200">
-        <div className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-2xl p-8 shadow-2xl relative">
-          <div className="text-center mb-10">
+        <div className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-2xl p-8 shadow-2xl relative overflow-hidden">
+          <div className="absolute -top-20 -right-20 w-48 h-48 bg-indigo-600 rounded-full mix-blend-multiply filter blur-3xl opacity-10"></div>
+          
+          <div className="text-center mb-10 relative z-10">
             <div className="w-16 h-16 bg-indigo-500/10 text-indigo-500 rounded-2xl flex items-center justify-center text-3xl mx-auto mb-4 border border-indigo-500/20">☁️</div>
-            <h1 className="text-2xl font-bold text-white mb-1">Global POS</h1>
+            <h1 className="text-2xl font-bold text-white mb-1">Cloud POS</h1>
             <p className="text-slate-500 text-sm">Enterprise Cloud Management</p>
           </div>
           
-          <div id="recaptcha-container"></div>
-
-          {authStep === "phone" ? (
-            <form onSubmit={handleSendOtp} className="space-y-5">
+          <form onSubmit={handleAuth} className="space-y-5 relative z-10">
+            <div>
+              <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider block mb-2">{t.emailUser}</label>
+              <input type="email" required value={authUsername} onChange={(e) => setAuthUsername(e.target.value)} placeholder={t.egEmail} className="w-full bg-slate-950 border border-slate-800 text-white px-4 py-4 rounded-xl outline-none focus:border-indigo-500 transition-colors font-medium text-base" />
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider block mb-2">{t.pass}</label>
+              <input type="password" required value={authPassword} onChange={(e) => setAuthPassword(e.target.value)} placeholder={t.enterPass} className="w-full bg-slate-950 border border-slate-800 text-white px-4 py-4 rounded-xl outline-none focus:border-indigo-500 transition-colors font-medium text-base" />
+            </div>
+            {authMode === "register" && (
               <div>
-                <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider block mb-2">{t.phoneInput}</label>
-                <input type="tel" required value={phoneNumber} onChange={(e) => setPhoneNumber(e.target.value)} placeholder={t.egPhone} className="w-full bg-slate-950 border border-slate-800 text-white px-4 py-4 rounded-xl outline-none focus:border-indigo-500 transition-colors font-medium text-lg" />
-                <p className="text-[11px] text-slate-500 mt-2">Include country code (e.g., +95)</p>
+                <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider block mb-2">{t.confirmPass}</label>
+                <input type="password" required value={authConfirm} onChange={(e) => setAuthConfirm(e.target.value)} placeholder={t.confirmPassHolder} className="w-full bg-slate-950 border border-slate-800 text-white px-4 py-4 rounded-xl outline-none focus:border-indigo-500 transition-colors font-medium text-base" />
               </div>
-              <button type="submit" disabled={authLoading} className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-4 rounded-xl transition-all shadow-lg shadow-indigo-500/20">
-                {authLoading ? "Sending..." : t.sendCode}
-              </button>
-            </form>
-          ) : (
-            <form onSubmit={handleVerifyOtp} className="space-y-5">
-              <div>
-                <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider block mb-2">{t.enterOtp}</label>
-                <input type="text" required value={otpCode} onChange={(e) => setOtpCode(e.target.value)} placeholder="• • • • • •" maxLength={6} className="w-full bg-slate-950 border border-slate-800 text-white px-4 py-4 rounded-xl outline-none focus:border-indigo-500 transition-colors font-bold text-center text-2xl tracking-[0.5em]" />
-              </div>
-              <button type="submit" disabled={authLoading} className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-4 rounded-xl transition-all shadow-lg shadow-indigo-500/20">
-                {authLoading ? "Verifying..." : t.verifyOtp}
-              </button>
-              <button type="button" onClick={() => setAuthStep("phone")} className="w-full text-slate-400 text-sm hover:text-white transition-colors mt-2">Back to Phone Number</button>
-            </form>
-          )}
+            )}
+            
+            <button type="submit" disabled={authLoading} className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-4 rounded-xl transition-all shadow-lg shadow-indigo-500/20 mt-2 uppercase tracking-wide">
+              {authLoading ? "Loading..." : (authMode === "login" ? t.loginBtn : t.registerBtn)}
+            </button>
+          </form>
 
-          <div className="mt-8 flex justify-center">
+          <div className="mt-8 text-center text-sm text-slate-500 relative z-10">
+            {authMode === "login" ? 
+              <p>{t.noAccount} <span onClick={() => {setAuthMode("register"); setAuthPassword("");}} className="text-indigo-400 font-bold cursor-pointer hover:underline">{t.regHere}</span></p> 
+            : 
+              <p>{t.hasAccount} <span onClick={() => {setAuthMode("login"); setAuthPassword(""); setAuthConfirm("");}} className="text-indigo-400 font-bold cursor-pointer hover:underline">{t.loginBtn}</span></p>
+            }
+          </div>
+
+          <div className="mt-8 flex justify-center relative z-10">
             <select value={language} onChange={(e)=>setLanguage(e.target.value)} className="bg-slate-950 text-slate-400 border border-slate-800 rounded-lg py-1.5 px-3 text-xs font-medium outline-none cursor-pointer">{LANGUAGES.map(l => <option key={l} value={l}>{l}</option>)}</select>
           </div>
         </div>
