@@ -64,7 +64,6 @@ export default function PremiumCloudPOS() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [currentUser, setCurrentUser] = useState(""); 
   
-  // 🌟 AUTH STATES
   const [authMode, setAuthMode] = useState("login");
   const [authUsername, setAuthUsername] = useState("");
   const [authPassword, setAuthPassword] = useState("");
@@ -107,7 +106,6 @@ export default function PremiumCloudPOS() {
 
   useEffect(() => {
     setIsMounted(true);
-    // LISTEN TO FIREBASE AUTH STATE
     const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
       if (user) {
         setIsLoggedIn(true);
@@ -136,7 +134,6 @@ export default function PremiumCloudPOS() {
 
   const playBeep = () => { if (!prefAudio) return; try { const ctx = new (window.AudioContext || (window as any).webkitAudioContext)(); const osc = ctx.createOscillator(); osc.type="square"; osc.frequency.setValueAtTime(500, ctx.currentTime); osc.connect(ctx.destination); osc.start(); osc.stop(ctx.currentTime + 0.05); } catch(e) {} };
 
-  // 🌟 CLOUD AUTHENTICATION LOGIC
   const handleAuth = async (e: any) => {
     e.preventDefault();
     setAuthLoading(true);
@@ -200,7 +197,6 @@ export default function PremiumCloudPOS() {
 
   const filteredProducts = products.filter(p => (activeCategory === "All" || p.category === activeCategory));
   
-  // Clean Professional Icons
   const menus = [ 
     { id: "pos", icon: "⊞", label: t.pos }, 
     { id: "products", icon: "📋", label: t.prod }, 
@@ -211,7 +207,6 @@ export default function PremiumCloudPOS() {
 
   if (!isMounted) return null;
 
-  // 🌟 MODERN PROFESSIONAL LOGIN SCREEN
   if (!isLoggedIn) {
     return (
       <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4 font-sans text-slate-200">
@@ -265,7 +260,6 @@ export default function PremiumCloudPOS() {
     <div className="h-screen flex bg-slate-950 font-sans text-slate-200 overflow-hidden">
       {isMobileMenuOpen && <div className="fixed inset-0 bg-black/60 z-30 md:hidden backdrop-blur-sm" onClick={() => setIsMobileMenuOpen(false)}></div>}
 
-      {/* 🌟 SLEEK SIDEBAR */}
       <div className={`fixed inset-y-0 left-0 transform ${isMobileMenuOpen ? "translate-x-0" : "-translate-x-full"} md:relative md:translate-x-0 w-64 bg-slate-900 border-r border-slate-800 flex flex-col z-40 transition-transform duration-300 ease-in-out`}>
         <div className="p-6 border-b border-slate-800">
           <h1 className="text-xl font-bold text-white tracking-wide">Global POS</h1>
@@ -285,7 +279,6 @@ export default function PremiumCloudPOS() {
         </div>
       </div>
 
-      {/* 🌟 MAIN CONTENT AREA */}
       <div className="flex-1 flex flex-col h-screen overflow-hidden w-full">
         <header className="h-16 bg-slate-900 border-b border-slate-800 flex items-center justify-between px-4 md:px-6 shrink-0 z-10">
           <div className="flex items-center gap-3">
@@ -304,7 +297,6 @@ export default function PremiumCloudPOS() {
           {activeModule === "pos" && (
             <div className="flex flex-col h-full">
               {!activeTable ? (
-                // 🌟 TABLES GRID
                 <div className="flex-1 flex flex-col overflow-hidden p-6 md:p-8">
                   <div className="flex justify-between items-center mb-6">
                     <h3 className="text-xl font-bold text-white">{t.selectTab}</h3>
@@ -320,7 +312,6 @@ export default function PremiumCloudPOS() {
                   </div>
                 </div>
               ) : (
-                // 🌟 POS ORDERING INTERFACE
                 <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
                   <div className="flex-1 flex flex-col h-full overflow-hidden p-4 md:p-6">
                     <div className="flex justify-between items-center mb-6 shrink-0">
@@ -328,7 +319,6 @@ export default function PremiumCloudPOS() {
                       <div className="bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 font-semibold px-6 py-2 rounded-lg">{activeTable.replace("Table", "Table ")}</div>
                     </div>
                     
-                    {/* Categories Tab */}
                     <div className="shrink-0 mb-6">
                       <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
                         <button onClick={() => {setActiveCategory("All"); playBeep();}} className={`px-5 py-2.5 rounded-lg font-medium whitespace-nowrap transition-all border ${activeCategory === "All" ? "bg-indigo-600 text-white border-indigo-600" : "bg-slate-900 text-slate-400 border-slate-800 hover:bg-slate-800"}`}>{t.allItems}</button>
@@ -338,7 +328,6 @@ export default function PremiumCloudPOS() {
                       </div>
                     </div>
                     
-                    {/* Products Grid */}
                     <div className="flex-1 overflow-y-auto pb-20 lg:pb-0 pr-2">
                       <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-4">
                         {filteredProducts.map(p => (
@@ -352,7 +341,6 @@ export default function PremiumCloudPOS() {
                     </div>
                   </div>
 
-                  {/* 🌟 CART / TICKET PANEL */}
                   <div className="w-full lg:w-[380px] bg-slate-900 border-l border-slate-800 flex flex-col h-[55vh] lg:h-full z-20 absolute bottom-0 lg:relative rounded-t-3xl lg:rounded-none shadow-2xl lg:shadow-none">
                     <div className="p-5 border-b border-slate-800 shrink-0">
                       <div className="w-12 h-1 bg-slate-700 rounded-full mx-auto mb-4 lg:hidden"></div>
